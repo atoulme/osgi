@@ -1,0 +1,64 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with this
+# work for additional information regarding copyright ownership.  The ASF
+# licenses this file to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+# Methods added to Project for compiling, handling of resources and generating source documentation.
+module OSGi
+  module ProjectExtension
+    include Extension
+
+    first_time do
+      desc 'Evaluate OSGi dependencies and places them in dependencies.rb'
+      Project.local_task('osgi:resolve:dependencies') { |name| "Resolving dependencies for #{name}" }
+    end
+
+    before_define do |project|
+      dependencies = DependenciesTask.define_task('osgi:resolve:dependencies')
+      dependencies.project = project
+    end
+
+    def dependencies(&block)
+      task('osgi:resolve:dependencies').enhance &block
+    end
+
+    class OSGi
+
+      attr_reader :options
+
+      def initialize()
+        @options = Options.new  
+      end
+
+      def registry
+        return OSGi::Registry.instance
+      end
+
+      class Options
+        attr_accessor :package_resolving_strategy, :bundle_resolving_strategy
+
+        def initialize
+          @package_resolving_strategy = :all
+          @resolving_stategy = :latest
+        end
+
+      end
+    end
+  end
+end
+
+module Buildr
+  class Project
+    include OSGi::ProjectExtension
+  end
+end
