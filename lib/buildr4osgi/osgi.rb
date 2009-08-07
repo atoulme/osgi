@@ -13,5 +13,5 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'buildr4osgi/nature'
-require 'buildr4osgi/osgi'
+require 'buildr4osgi/osgi/bundle'
+require 'buildr4osgi/osgi/registry'

@@ -41,4 +41,5 @@ TODO
   spec.rdoc_options     = '--title', 'Buildr', '--main', 'README.rdoc',
                           '--webcvs', 'http://svn.apache.org/repos/asf/buildr/trunk/'
   spec.post_install_message = "To get started run buildr --help"
+  spec.add_dependency("manifest", "= 0.0.3")
 end

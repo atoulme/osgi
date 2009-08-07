@@ -87,9 +87,6 @@ describe Buildr::DefaultNature do
       end
     end
     @dummy = DummyNature.new
-    print DEFAULT
-    print "\n"
-    print Buildr::Nature::Registry.all
     Buildr::Nature::Registry.add_nature(@dummy)
   end
   
