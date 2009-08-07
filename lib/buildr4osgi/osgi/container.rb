@@ -20,7 +20,7 @@ require "zip/zipfilesystem"
 
 module OSGi
   
-  class Registry
+  class Container
 
     # bundles: the bundles of the eclipse instance loaded on startup
     # location: the location of the Eclipse instance

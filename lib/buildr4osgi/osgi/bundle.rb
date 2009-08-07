@@ -164,6 +164,8 @@ module OSGi #:nodoc:
       Buildr::Artifact.to_spec({:group => group, :id => name, :type => "jar", :version => version})
     end
     
+    protected
+    
     def resolve_matching_artifacts
       if version.is_a? VersionRange
         return Buildr4Eclipse::EclipseInstance::Instance.instance.resolved_instances.collect {|i| 

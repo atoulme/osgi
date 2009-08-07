@@ -13,7 +13,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-describe OSGi::Registry do
+describe OSGi::Container do
 
   before :all do
     @eclipse_instances = [Dir.pwd + "/tmp/eclipse1", Dir.pwd + "/tmp/eclipse2"]
@@ -52,17 +52,17 @@ MANIFEST
   end
   
   it 'should be able to create an OSGi container instance on a folder'  do
-    lambda {OSGi::Registry.new(@eclipse_instances.first)}.should_not raise_error
+    lambda {OSGi::Container.new(@eclipse_instances.first)}.should_not raise_error
   end
   
   it 'should be able to list the bundles present in the container' do
-    e1 = OSGi::Registry.new(@eclipse_instances.first)
+    e1 = OSGi::Container.new(@eclipse_instances.first)
     bundles = e1.bundles.select {|bundle| bundle.name == "com.ibm.icu"}
     bundles.size.should eql(1)
   end
   
   it 'should find a specific bundle in the container' do
-    e2 = OSGi::Registry.new(@eclipse_instances.last)
+    e2 = OSGi::Container.new(@eclipse_instances.last)
     e2.find(:name=> "org.eclipse.ui", :version => "3.5.0.M_20090107").should_not be_nil
   end
 end
