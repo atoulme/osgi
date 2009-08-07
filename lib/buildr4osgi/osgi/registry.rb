@@ -19,25 +19,25 @@ module OSGi
     include Singleton
     
     def containers
-      unless @instances # we compute instances only once.
-        @instances = [Buildr.settings.user, Buildr.settings.build].inject([]) { |repos, hash|
+      unless @containers # we compute instances only once.
+        @containers = [Buildr.settings.user, Buildr.settings.build].inject([]) { |repos, hash|
           repos | Array(hash['osgi'] && hash['osgi']['containers'])
         }
         if ENV['OSGi'] 
-          @instances |= ENV['OSGi'].split(';')
+          @containers |= ENV['OSGi'].split(';')
         end
       end
-      @instances
+      @containers
     end
     
-    def resolved_instances
-      unless @resolved_instances
+    def resolved_containers
+      unless @resolved_containers
 
-        @resolved_instances = instances.collect { |instance|
-          OSGi::Container.new(instance) 
+        @resolved_containers = containers.collect { |container|
+          OSGi::Container.new(container) 
         }
       end
-      @resolved_instances
+      @resolved_containers
     end 
   end
   

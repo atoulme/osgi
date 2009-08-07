@@ -54,6 +54,21 @@ module OSGi
 
       end
     end
+    
+    protected
+    
+    # returns an array of the dependencies of the plugin, read from the manifest.
+    def manifest_dependencies()
+      return [] unless File.exists?("#{base_dir}/META-INF/MANIFEST.MF")
+      manifest = Manifest.read(File.read("#{base_dir}/META-INF/MANIFEST.MF"))
+      bundles = []
+      manifest.first[B_REQUIRE].each_pair {|key, value| 
+        bundle = OSGi::Bundle.new(key, value[B_DEP_VERSION])
+        bundle.optional = value[B_RESOLUTION] == "optional"
+        bundles << bundle
+      } unless manifest.first[B_REQUIRE].nil?
+      bundles
+    end
   end
 end
 
