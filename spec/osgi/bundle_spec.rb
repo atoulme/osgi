@@ -116,7 +116,26 @@ describe OSGi::VersionRange do
 end
 
 describe OSGi::Bundle do
-  it 'is pending' do
-    pending
+  before :all do
+    Buildr::write "MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.1.R_20090912
+Bundle-ActivationPolicy: Lazy
+MANIFEST
+    @bundle = OSGi::Bundle.fromManifest(Manifest.read(File.open("MANIFEST.MF").read), ".")
   end
+  
+  it 'should read from a manifest' do
+    @bundle.name.should eql("org.eclipse.core.resources")
+    @bundle.version.to_s.should eql("3.5.1.R_20090912")
+    @bundle.lazy_start.should be_true
+    @bundle.start_level.should eql(4)
+  end
+  
+  it 'should be transformed as an artifact' do
+    @bundle.to_s.should eql("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090912")
+  end
+  
 end
