@@ -12,3 +12,57 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
 # License for the specific language governing permissions and limitations under
 # the License.
+
+describe OSGi::Registry do
+
+  before :all do
+    @eclipse_instances = [Dir.pwd + "/tmp/eclipse1", Dir.pwd + "/tmp/eclipse2"]
+    
+    Buildr::write "tmp/eclipse1/plugins/com.ibm.icu-3.9.9.R_20081204/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: com.ibm.icu; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+MANIFEST
+    Buildr::write "tmp/eclipse1/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.0.R_20090512
+MANIFEST
+    Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.1.R_20090912/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.1.R_20090912
+MANIFEST
+    Buildr::write "tmp/eclipse2/plugins/org.eclipse.ui-3.4.2.R_20090226/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.ui; singleton:=true
+Bundle-Version: 3.4.2.R_20090226
+MANIFEST
+  
+    Buildr::write "tmp/eclipse2/plugins/org.eclipse.ui-3.5.0.M_20090107/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.ui; singleton:=true
+Bundle-Version: 3.5.0.M_20090107
+MANIFEST
+  end
+  
+  it 'should be able to create an OSGi container instance on a folder'  do
+    lambda {OSGi::Registry.new(@eclipse_instances.first)}.should_not raise_error
+  end
+  
+  it 'should be able to list the bundles present in the container' do
+    e1 = OSGi::Registry.new(@eclipse_instances.first)
+    bundles = e1.bundles.select {|bundle| bundle.name == "com.ibm.icu"}
+    bundles.size.should eql(1)
+  end
+  
+  it 'should find a specific bundle in the container' do
+    e2 = OSGi::Registry.new(@eclipse_instances.last)
+    e2.find(:name=> "org.eclipse.ui", :version => "3.5.0.M_20090107").should_not be_nil
+  end
+end

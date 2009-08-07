@@ -15,6 +15,8 @@
 
 module OSGi #:nodoc:
   
+  OSGI_GROUP_ID = "osgi"
+  
   class Version
     
     attr_accessor :major, :minor, :tiny, :qualifier
@@ -132,7 +134,7 @@ module OSGi #:nodoc:
       @file = file
       @optional = optional
       @start_level = 4
-      @group = Buildr4Eclipse::ECLIPSE_GROUP_ID 
+      @group = OSGI_GROUP_ID
     end
     
     # Creates itself by loading from the manifest file passed to it as a hash
@@ -166,7 +168,7 @@ module OSGi #:nodoc:
       if version.is_a? VersionRange
         return Buildr4Eclipse::EclipseInstance::Instance.instance.resolved_instances.collect {|i| 
           i.find(:name => name).select {|b| version.in_range(b.version)}}.flatten.compact.collect{|b| 
-            osgi = OSGiBundle.new(b.name, b.version)
+            osgi = Bundle.new(b.name, b.version)
             osgi.optional = optional
             osgi.group = group
             osgi

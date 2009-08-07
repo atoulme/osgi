@@ -51,7 +51,7 @@ module OSGi
             entry =  zipfile.find_entry("META-INF/MANIFEST.MF")
             if (entry != nil)
               manifest = Manifest.read(zipfile.read("META-INF/MANIFEST.MF"))
-              @bundles << OSGiBundle.fromManifest(manifest, absolute_plugin_path) 
+              @bundles << Bundle.fromManifest(manifest, absolute_plugin_path) 
             end
             zipfile.close
           else
@@ -67,7 +67,7 @@ module OSGi
                 rescue
                   file.close
                 end
-                @bundles << OSGiBundle.fromManifest(manifest, absolute_plugin_path)
+                @bundles << Bundle.fromManifest(manifest, absolute_plugin_path)
               end
             end
           end
