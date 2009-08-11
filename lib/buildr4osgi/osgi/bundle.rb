@@ -138,6 +138,7 @@ module OSGi #:nodoc:
       @file = file
       @optional = optional
       @start_level = 4
+      @type = "jar" #it's always a jar, even if it is a directory: we will jar it for Maven.
       @group = OSGI_GROUP_ID
     end
     
@@ -170,7 +171,7 @@ module OSGi #:nodoc:
     end
     
     def to_s
-      Buildr::Artifact.to_spec({:group => group, :id => name, :type => "jar", :version => version})
+      to_spec()
     end
     
     def <=>(other)
