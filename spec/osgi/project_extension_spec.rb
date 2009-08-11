@@ -157,7 +157,35 @@ MANIFEST
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["foo"].size.should == 1
-    artifact(deps["foo"][0]).to_hash[:id].should == "org.eclipse.core.resources"
+    artifact(deps["foo"][0].to_s).to_hash[:id].should == "org.eclipse.core.resources"
     artifact(deps["foo"][0]).to_hash[:version].should == "3.5.1.R_20090512"
   end
+end
+
+describe OSGi::InstallTask do
+  before :all do
+    @eclipse_instances = [Dir.pwd + "/tmp/eclipse1"]
+    
+    #Buildr::download "something"
+    # Buildr::download "tmp/eclipse1/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    # Manifest-Version: 1.0
+    # Bundle-ManifestVersion: 2
+    # Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+    # Bundle-Version: 3.5.0.R_20090512
+    # MANIFEST
+  end
+  
+  it 'should install the dependencies into the local Maven repository' do
+    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: com.ibm.icu,org.eclipse.core.resources
+MANIFEST
+    }
+    foo.osgi.registry.containers = @eclipse_instances.dup
+    pending
+  end
+  
 end

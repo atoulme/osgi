@@ -16,8 +16,28 @@
 # Methods added to Project for compiling, handling of resources and generating source documentation.
 module OSGi
   
+  module BundleCollector
+    
+    def collect(project)
+      bundles = []
+      project.manifest_dependencies.each {|b| collectBundles(bundles, b, project)}
+      bundles.sort
+    end
+    
+    def collectBundles(bundles, bundle, project)
+      bundle.resolve!(project)
+      if !(bundles.include? bundle)
+        bundles << bundle
+        bundle.bundles.each {|b|
+          collectBundles(bundles, b, project)  
+        }
+      end
+    end
+    
+  end
+  
   class DependenciesTask < Rake::Task
-
+    include BundleCollector
     attr_accessor :project
 
     def initialize(*args) #:nodoc:
@@ -25,16 +45,47 @@ module OSGi
 
       enhance do |task|
         dependencies = {}
-        project.projects.select { |subp| subp.respond_to? :manifest_dependencies }.each do |subp|
-          subp_deps = subp.manifest_dependencies.collect {|b| b.resolve(subp)}
-          dependencies[subp.name] = subp_deps.collect {|dep| dep.to_s } unless subp_deps.empty?
+        project.projects.each do |subp|
+          subp_deps = collect(subp)
+          dependencies[subp.name] = subp_deps unless subp_deps.empty?
         end
 
-        if (project.respond_to? :manifest_dependencies)
-          dependencies[project.name] = project.manifest_dependencies.collect {|b| b.resolve(project).to_s}.sort
-        end
+        
+        dependencies[project.name] = collect(project)
         
         Buildr::write File.join(project.base_dir, "dependencies.yml"), dependencies.to_yaml
+      end
+    end
+  end
+  
+  class InstallTask < Rake::Task
+
+    attr_accessor :project
+
+    def initialize(*args) #:nodoc:
+      super
+
+      enhance do |task|
+        dependencies = []
+        project.projects.each do |subp|
+          subp_deps = collect(subp)
+          dependencies << subp_deps unless subp_deps.empty?
+        end
+
+        dependencies << collect(project)
+        
+        dependencies.flatten.sort.each {|bundle|
+          begin
+          artifact = Buildr::artifact(bundle.to_s)
+          installed = Buildr.repositories.locate(artifact)
+          mkpath File.dirname(installed)
+          cp bundle.file, installed
+          info "Installed #{installed}"
+          rescue Exception => e
+            error "Error installing the artifact #{bundle.to_s}"
+            #puts e.backtrace.join("\n")
+          end
+        }
       end
     end
   end
@@ -102,13 +153,17 @@ module OSGi
     include Extension
 
     first_time do
-      desc 'Evaluate OSGi dependencies and places them in dependencies.rb'
+      desc 'Evaluate OSGi dependencies and places them in dependencies.yml'
       Project.local_task('osgi:resolve:dependencies') { |name| "Resolving dependencies for #{name}" }
+      desc 'Installs OSGi dependencies in the Maven local repository'
+      Project.local_task('osgi:install:dependencies') { |name| "Install dependencies for #{name}" }
     end
 
     before_define do |project|
       dependencies = DependenciesTask.define_task('osgi:resolve:dependencies')
       dependencies.project = project
+      install = InstallTask.define_task('osgi:install:dependencies')
+      install.project = project
     end
 
     def dependencies(&block)

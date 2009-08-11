@@ -108,6 +108,7 @@ module OSGi #:nodoc:
   end
   
   class Bundle
+    include Buildr::ActsAsArtifact
     
     #Keys used in the MANIFEST.MF file
     B_NAME = "Bundle-SymbolicName"
@@ -126,6 +127,9 @@ module OSGi #:nodoc:
     # The start level is deduced from the bundles.info file. Default is -1.
     # The lazy start is found in the bundles.info file
     attr_accessor :name, :version, :bundles, :file, :optional, :start_level, :lazy_start, :group
+    
+    alias :id :name
+    
     def initialize(name, version, file=nil, bundles=[], optional = false)
       @name = name
       @version = version.is_a?(VersionRange) ? version : VersionRange.parse(version)
@@ -167,6 +171,14 @@ module OSGi #:nodoc:
     
     def to_s
       Buildr::Artifact.to_spec({:group => group, :id => name, :type => "jar", :version => version})
+    end
+    
+    def <=>(other)
+      if other.is_a?(Bundle)
+        return to_s <=> other.to_s
+      else
+        return to_s <=> other
+      end
     end
     
     def resolve_matching_artifacts(project)
