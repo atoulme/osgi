@@ -36,5 +36,5 @@ TEXT
   spec.rdoc_options     = '--title', 'Buildr4osgi', '--main', 'README.rdoc',
                           '--webcvs', 'http://github.com/atoulme/buildr4osgi'
   spec.post_install_message = "To get started run buildr --help"
-  spec.add_dependency("manifest", "= 0.0.3")
+  spec.add_dependency("manifest", "= 0.0.4")
 end
