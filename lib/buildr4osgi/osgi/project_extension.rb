@@ -133,7 +133,7 @@ module OSGi
 
         def initialize
           @package_resolving_strategy = :all
-          @resolving_stategy = :latest
+          @bundle_resolving_strategy = :latest
         end
 
       end

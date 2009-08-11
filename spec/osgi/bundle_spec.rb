@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require File.join(File.dirname(__FILE__), '../spec_helpers')
+
 describe OSGi::Version do
   it 'should initialize itself from a string' do
     version = OSGi::Version.new("1.0.0.qualifier")

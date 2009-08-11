@@ -75,6 +75,7 @@ module OSGi
           end
         end
       end
+      @bundles = @bundles.compact
     end
     
     # Return the list of bundles that match the criteria passed as arguments

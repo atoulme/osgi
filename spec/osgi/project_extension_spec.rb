@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require File.join(File.dirname(__FILE__), '../spec_helpers')
+
 describe OSGi::ProjectExtension do
   
   it 'should add a new task to projects' do
@@ -128,5 +130,34 @@ MANIFEST
     artifact(deps["foo"][1]).to_hash[:id].should == "org.eclipse.core.resources"
     artifact(deps["foo"][1]).to_hash[:version].should == "3.5.0.R_20090512"
   end
-
+  
+  it 'should pick a bundle when several match' do
+    Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.0.R_20090512
+MANIFEST
+    Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.1.R_20090512
+MANIFEST
+    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
+MANIFEST
+    }
+    foo.osgi.registry.containers = [Dir.pwd + "/tmp/eclipse2"]
+    foo.dependencies.invoke
+    File.exist?('dependencies.yml').should be_true
+    deps = YAML::load(File.read('dependencies.yml'))
+    deps["foo"].size.should == 1
+    artifact(deps["foo"][0]).to_hash[:id].should == "org.eclipse.core.resources"
+    artifact(deps["foo"][0]).to_hash[:version].should == "3.5.1.R_20090512"
+  end
 end

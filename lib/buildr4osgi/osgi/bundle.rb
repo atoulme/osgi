@@ -140,11 +140,16 @@ module OSGi #:nodoc:
     # Creates itself by loading from the manifest file passed to it as a hash
     # Finds the name and version, and populates a list of dependencies.
     def self.fromManifest(manifest, jarFile) 
+      if manifest.first[B_NAME].nil?
+        warn "Could not find the name of the bundle represented by #{jarFile}"
+        return nil
+      end
       bundles = []
       #see http://aspsp.blogspot.com/2008/01/wheres-system-bundle-jar-file-cont.html for the system.bundle trick.
       #key.strip: sometimes there is a space between the comma and the name of the bundle.
       manifest.first[B_REQUIRE].each_pair {|key, value| bundles << Bundle.new(key.strip, value[B_DEP_VERSION], nil, [], value[B_RESOLUTION] == "optional") unless "system.bundle" == key} unless manifest.first[B_REQUIRE].nil?
-      bundle = Bundle.new(manifest.first[B_NAME].keys.first, manifest.first[B_VERSION].keys.first, jarFile, bundles)
+      version = manifest.first[B_VERSION].nil? ? nil : manifest.first[B_VERSION].keys.first
+      bundle = Bundle.new(manifest.first[B_NAME].keys.first, version, jarFile, bundles)
       if !manifest.first[B_LAZY_START].nil? 
         # We look for the value of Bundle-ActivationPolicy: lazy or nothing usually. 
         # lazy may be spelled Lazy too apparently, so we downcase the string in case.
@@ -187,22 +192,19 @@ module OSGi #:nodoc:
         when 0 then nil
         when 1 then bundles.first
         else
-          strategy = project.osgi.options.resolving_strategy
-          case strategy
-          when Symbol
-            project.osgi.options.send(strategy, bundles)
-          when Block
-            resolving_strategy.call(bundles)
-          end
+          OSGi::BundleResolvingStrategies.send(project.osgi.options.bundle_resolving_strategy, bundles)
         end
-      raise "Could not resolve bundle for #{self.to_s}" if bundle.nil?
-      @name = bundle.name
-      @version = bundle.version
-      @bundles = bundle.bundles
-      @file = bundle.file
-      @optional = bundle.optional
-      @start_level = bundle.start_level
-      @group = bundle.group
+      if bundle.nil?
+        warn "Could not resolve bundle for #{self.to_s}" 
+      else
+        @name = bundle.name
+        @version = bundle.version
+        @bundles = bundle.bundles
+        @file = bundle.file
+        @optional = bundle.optional
+        @start_level = bundle.start_level
+        @group = bundle.group
+      end
     end
     
   end
