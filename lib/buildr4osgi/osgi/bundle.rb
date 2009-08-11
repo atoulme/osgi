@@ -168,8 +168,12 @@ module OSGi #:nodoc:
       if version.is_a? VersionRange
         return project.osgi.registry.resolved_containers.collect {|i| 
           i.find(:name => name).select {|b| version.in_range(b.version)}}.flatten.compact.collect{|b| b.dup }
+      elsif version.nil?
+        return project.osgi.registry.resolved_containers.collect {|i| 
+          i.find(:name => name)}.flatten.compact.collect{|b| b.dup }
+      else
+        [self]
       end
-      [self]
     end
     
     def resolve(project, bundles = resolve_matching_artifacts(project))
