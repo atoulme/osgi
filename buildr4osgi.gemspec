@@ -22,24 +22,19 @@ Gem::Specification.new do |spec|
   spec.homepage       = "http://buildr.apache.org/"
   spec.summary        = "A plugin for adding OSGi support to Buildr."
   spec.description    = <<-TEXT
-TODO
-  TEXT
+A plugin for adding OSGi support to Buildr. Ever dreamt you could resolve your OSGi dependencies ?
+TEXT
   spec.rubyforge_project  = 'buildr4osgi'
-
   # Rakefile needs to create spec for both platforms (ruby and java), using the
   # $platform global variable.  In all other cases, we figure it out from RUBY_PLATFORM.
   spec.platform       = $platform || RUBY_PLATFORM[/java/] || 'ruby'
-  
   spec.files          = Dir['{doc,etc,lib,rakelib,spec}/**/*', '*.{gemspec,buildfile}'] +
-                        ['LICENSE', 'NOTICE', 'CHANGELOG', 'README.rdoc', 'Rakefile', '_buildr', '_jbuildr']
-  spec.require_paths  = 'lib'
-  #spec.bindir         = 'bin'                               # Use these for applications.
-  #spec.executable     = 'buildr'
-
+                        ['LICENSE', 'NOTICE', 'README.rdoc', 'Rakefile']
+  spec.require_paths  = ['lib']
   spec.has_rdoc         = true
   spec.extra_rdoc_files = 'README.rdoc', 'LICENSE'
-  spec.rdoc_options     = '--title', 'Buildr', '--main', 'README.rdoc',
-                          '--webcvs', 'http://svn.apache.org/repos/asf/buildr/trunk/'
+  spec.rdoc_options     = '--title', 'Buildr4osgi', '--main', 'README.rdoc',
+                          '--webcvs', 'http://github.com/atoulme/buildr4osgi'
   spec.post_install_message = "To get started run buildr --help"
   spec.add_dependency("manifest", "= 0.0.3")
 end
