@@ -15,8 +15,10 @@
 
 require "manifest"
 # We will be messing up with .jar files that we will treat just like zip files.
-require "zip/zip"
-require "zip/zipfilesystem"
+unless (defined?(Zip::ZipFile))
+  require "zip/zip"
+  require "zip/zipfilesystem"
+end
 
 module OSGi
   

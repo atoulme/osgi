@@ -31,7 +31,7 @@ module Buildr
         end
       end
 
-      class OptionsFromNatures < Buildr::Eclipse::Options
+      class OptionsFromNatures
         attr_accessor :m2_repo_var, :project #Remove when Eclipse patch in.
         
         def initialize(project)

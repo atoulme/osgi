@@ -128,7 +128,7 @@ module OSGi #:nodoc:
     attr_accessor :name, :version, :bundles, :file, :optional, :start_level, :lazy_start, :group
     def initialize(name, version, file=nil, bundles=[], optional = false)
       @name = name
-      @version = VersionRange.parse(version)
+      @version = version.is_a?(VersionRange) ? version : VersionRange.parse(version)
       @version ||= version
       @bundles = bundles
       @file = file
@@ -164,46 +164,41 @@ module OSGi #:nodoc:
       Buildr::Artifact.to_spec({:group => group, :id => name, :type => "jar", :version => version})
     end
     
-    protected
-    
-    def resolve_matching_artifacts
+    def resolve_matching_artifacts(project)
       if version.is_a? VersionRange
-        return Buildr4Eclipse::EclipseInstance::Instance.instance.resolved_instances.collect {|i| 
-          i.find(:name => name).select {|b| version.in_range(b.version)}}.flatten.compact.collect{|b| 
-            osgi = Bundle.new(b.name, b.version)
-            osgi.optional = optional
-            osgi.group = group
-            osgi
-          }
+        return project.osgi.registry.resolved_containers.collect {|i| 
+          i.find(:name => name).select {|b| version.in_range(b.version)}}.flatten.compact.collect{|b| b.dup }
       end
       [self]
     end
     
-    def resolve(bundles = resolve_matching_artifacts)
-      osgi = Bundle.new
-      osgi.name = name
-      osgi.version = version
-      osgi.optional = optional
-      osgi.group = group
-      osgi.resolve!(bundles)
+    def resolve(project, bundles = resolve_matching_artifacts(project))
+      osgi = self.dup
+      osgi.resolve!(project, bundles)
       osgi
     end
     
-    def resolve!(bundles = resolve_matching_artifacts)
-      case bundles.size
-      when 0
-        return nil
-      when 1
-        return bundles[0]
-      else
-        strategy = Buildr4Eclipse::EclipseInstance::Instance.instance.resolving_strategy
-        case strategy
-        when Symbol
-          return Buildr4Eclipse::ResolvingStrategies.send(strategy, bundles)
-        when Block
-          return resolving_strategy.call(bundles)
+    def resolve!(project, bundles = resolve_matching_artifacts(project))
+      bundle = case bundles.size
+        when 0 then nil
+        when 1 then bundles.first
+        else
+          strategy = project.osgi.options.resolving_strategy
+          case strategy
+          when Symbol
+            project.osgi.options.send(strategy, bundles)
+          when Block
+            resolving_strategy.call(bundles)
+          end
         end
-      end
+      raise "Could not resolve bundle for #{self.to_s}" if bundle.nil?
+      @name = bundle.name
+      @version = bundle.version
+      @bundles = bundle.bundles
+      @file = bundle.file
+      @optional = bundle.optional
+      @start_level = bundle.start_level
+      @group = bundle.group
     end
     
   end
