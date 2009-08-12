@@ -18,21 +18,41 @@ module OSGi
   
   module BundleCollector
     
+    attr_accessor :bundles
+    
     def collect(project)
-      bundles = []
-      project.manifest_dependencies.each {|b| collectBundles(bundles, b, project)}
-      bundles.sort
+      @bundles = []
+      return [] unless File.exists?("#{project.base_dir}/META-INF/MANIFEST.MF")
+      as_bundle = Bundle.fromManifest(Manifest.read(File.read(File.join(project.base_dir, "META-INF/MANIFEST.MF"))), project.name)
+      return [] if as_bundle.nil?
+      as_bundle.resolve!(project)
+      as_bundle.imports.each{ |i| _collect(i, project)}
+      as_bundle.bundles.each {|b| _collect(b, project)}
+      @bundles.sort
     end
     
-    def collectBundles(bundles, bundle, project)
-      if bundle.resolve!(project)
-        if !(bundles.include? bundle)
-          bundles << bundle
-          bundles += bundle.fragments(project)
-          bundle.bundles.each {|b|
-            collectBundles(bundles, b, project)  
-          }
+    def _collect(bundle, project)
+      if bundle.is_a? Bundle
+        if bundle.resolve!(project)
+          if !(@bundles.include? bundle)
+            
+            @bundles << bundle
+            @bundles |= bundle.fragments(project)       
+            (bundle.bundles + bundle.imports).each {|b|
+              _collect(b, project)  
+            }
+          end
         end
+      elsif bundle.is_a?(BundlePackage)
+        bundle.resolve(project).each {|b| 
+          if !(bundles.include? b)
+            
+            @bundles << b
+            (b.bundles + b.imports).each {|b|
+              _collect(b, project)  
+            }
+          end
+        }
       end
     end
     
@@ -204,14 +224,8 @@ module OSGi
     # returns an array of the dependencies of the plugin, read from the manifest.
     def manifest_dependencies()
       return [] unless File.exists?("#{base_dir}/META-INF/MANIFEST.MF")
-      manifest = Manifest.read(File.read("#{base_dir}/META-INF/MANIFEST.MF"))
-      bundles = []
-      manifest.first[::OSGi::Bundle::B_REQUIRE].each_pair {|key, value| 
-        bundle = ::OSGi::Bundle.new(key, value[::OSGi::Bundle::B_DEP_VERSION])
-        bundle.optional = value[::OSGi::Bundle::B_RESOLUTION] == "optional"
-        bundles << bundle
-      } unless manifest.first[::OSGi::Bundle::B_REQUIRE].nil?
-      bundles
+      as_bundle = Bundle.fromManifest(Manifest.read(File.read(File.join(project.base_dir, "META-INF/MANIFEST.MF"))), project.name)
+      as_bundle.nil? ? [] : as_bundle.bundles
     end
   end
 end

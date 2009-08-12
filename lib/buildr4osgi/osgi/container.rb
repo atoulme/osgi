@@ -55,7 +55,8 @@ module OSGi
             if (entry != nil)
               manifest = Manifest.read(zipfile.read("META-INF/MANIFEST.MF"))
               bundle = Bundle.fromManifest(manifest, absolute_plugin_path) 
-              if bundle.fragment? 
+              if bundle.nil?
+              elsif bundle.fragment? 
                 @fragments << bundle
               else
                 @bundles << bundle
@@ -76,7 +77,8 @@ module OSGi
                   file.close
                 end
                 bundle = Bundle.fromManifest(manifest, absolute_plugin_path)
-                if bundle.fragment? 
+                if bundle.nil?
+                elsif bundle.fragment?
                   @fragments << bundle
                 else
                   @bundles << bundle
@@ -91,13 +93,20 @@ module OSGi
     end
     
     # Return the list of bundles that match the criteria passed as arguments
-    def find(criteria = {:name => "", :version =>""})
+    # Possible criterias:
+    #  name: the name of the bundle
+    #  version: the version of the bundle
+    #  exports_package: a package exported by the bundle
+    def find(criteria = {})
       selected = bundles + fragments
       if (criteria[:name])
         selected = selected.select {|b| b.name == criteria[:name]}
       end
       if (criteria[:version])
         selected = selected.select {|b| b.version == criteria[:version]}
+      end
+      if (criteria[:exports_package])
+        selected = selected.select {|b| b.exported_packages.include? criteria[:exports_package]}
       end
       selected
     end
@@ -112,7 +121,5 @@ module OSGi
       end
       selected
     end
-
   end
-
 end

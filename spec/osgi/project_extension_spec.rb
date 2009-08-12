@@ -52,6 +52,12 @@ Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.0.R_20090512
 MANIFEST
+    Buildr::write "tmp/eclipse1/plugins/org.dude-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.dude; singleton:=true
+Bundle-Version: 3.5.0.R_20090512
+MANIFEST
   end
   
   it 'should help resolve dependencies' do
@@ -101,14 +107,14 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
-Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.eclipse.core.resources;bundle-version=3.5.0.R_20090512
+Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude;bundle-version=3.5.0.R_20090512
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.dependencies.invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["foo"].size.should == 2 # there should be 2 dependencies
+    deps["foo"].size.should == 2
     artifact(deps["foo"][0]).to_hash[:id].should == "com.ibm.icu"
     artifact(deps["foo"][0]).to_hash[:version].should == "3.9.9.R_20081204"
   end
@@ -119,7 +125,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
-Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.eclipse.core.resources
+Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
@@ -127,7 +133,7 @@ MANIFEST
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["foo"].size.should == 2 # there should be 2 dependencies
-    artifact(deps["foo"][1]).to_hash[:id].should == "org.eclipse.core.resources"
+    artifact(deps["foo"][1]).to_hash[:id].should == "org.dude"
     artifact(deps["foo"][1]).to_hash[:version].should == "3.5.0.R_20090512"
   end
   
@@ -160,6 +166,36 @@ MANIFEST
     artifact(deps["foo"][0].to_s).to_hash[:id].should == "org.eclipse.core.resources"
     artifact(deps["foo"][0]).to_hash[:version].should == "3.5.1.R_20090512"
   end
+  
+  it 'should resolve transitively all the jars needed' do
+      Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources2; singleton:=true
+Bundle-Version: 3.5.0.R_20090512
+MANIFEST
+      Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Require-Bundle: org.eclipse.core.resources2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.1.R_20090512
+MANIFEST
+      foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
+MANIFEST
+      }
+      foo.osgi.registry.containers = [Dir.pwd + "/tmp/eclipse2"]
+      foo.dependencies.invoke
+      File.exist?('dependencies.yml').should be_true
+      deps = YAML::load(File.read('dependencies.yml'))
+      deps["foo"].size.should == 2
+  end
+  
 end
 
 describe OSGi::InstallTask do

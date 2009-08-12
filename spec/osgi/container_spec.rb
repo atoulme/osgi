@@ -32,6 +32,13 @@ Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.0.R_20090512
 MANIFEST
+    Buildr::write "tmp/eclipse1/plugins/org.fragments-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.fragment; singleton:=true
+Fragment-Host: org.eclipse.core.resources
+Bundle-Version: 3.5.0.R_20090512
+MANIFEST
     Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.1.R_20090912/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
@@ -63,8 +70,18 @@ MANIFEST
     bundles.size.should eql(1)
   end
   
+  it 'should be able to list the fragments present in the container' do
+    e1 = OSGi::Container.new(@eclipse_instances.first)
+    e1.fragments.size.should eql(1)
+  end
+  
   it 'should find a specific bundle in the container' do
     e2 = OSGi::Container.new(@eclipse_instances.last)
-    e2.find(:name=> "org.eclipse.ui", :version => "3.5.0.M_20090107").should_not be_nil
+    e2.find(:name=> "org.eclipse.ui", :version => "3.5.0.M_20090107").should_not be_empty
+  end
+  
+  it 'should find a specific fragment in the container' do
+    e1 = OSGi::Container.new(@eclipse_instances.first)
+    e1.find_fragments(:name=> "org.fragment").should_not be_empty
   end
 end

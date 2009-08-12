@@ -77,7 +77,7 @@ describe OSGi::Version do
   end
   
   it 'should compare with nil' do
-    (OSGi::Version.new('1.0.0') <=> nil).should eql(-1)
+    (OSGi::Version.new('1.0.0') <=> nil).should eql(1)
   end
 end
 
@@ -119,14 +119,23 @@ end
 
 describe OSGi::Bundle do
   before :all do
-    Buildr::write "MANIFEST.MF", <<-MANIFEST
+    manifest = <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.1.R_20090912
 Bundle-ActivationPolicy: Lazy
 MANIFEST
-    @bundle = OSGi::Bundle.fromManifest(Manifest.read(File.open("MANIFEST.MF").read), ".")
+    @bundle = OSGi::Bundle.fromManifest(Manifest.read(manifest), ".")
+    manifest2 = <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources.x86; singleton:=true
+Bundle-Version: 3.5.1.R_20090912
+Bundle-ActivationPolicy: Lazy
+Fragment-Host: org.eclipse.core.resources
+MANIFEST
+    @fragment = OSGi::Bundle.fromManifest(Manifest.read(manifest2), ".")
   end
   
   it 'should read from a manifest' do
@@ -138,6 +147,10 @@ MANIFEST
   
   it 'should be transformed as an artifact' do
     @bundle.to_s.should eql("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090912")
+  end
+  
+  it 'should recognize itself as a fragment' do
+    @fragment.fragment?.should be_true
   end
   
 end
