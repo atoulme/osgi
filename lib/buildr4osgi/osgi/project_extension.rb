@@ -121,12 +121,14 @@ module OSGi
               cp bundle.file, installed
               info "Installed #{installed}"
             else
-              Buildr::upload Buildr::artifact(bundle.to_s).from(bundle.file)
+              task = Buildr::upload Buildr::artifact(bundle.to_s).from(bundle.file)
+              task.invoke
               info "Uploaded #{bundle}"
             end
           rescue Exception => e
             error "Error installing the artifact #{bundle.to_s}"
-            #puts e.backtrace.join("\n")
+            print e.message
+            print e.backtrace.join("\n")
           end
         }
       end

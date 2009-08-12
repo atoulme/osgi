@@ -249,6 +249,30 @@ MANIFEST
     File.exist?(artifact("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090512").to_s).should be_true
   end
   
+  it 'should upload dependencies to the releasing repository' do
+    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: org.eclipse.debug.ui
+MANIFEST
+    }
+    foo.osgi.registry.containers = @eclipse_instances.dup
+    repositories.release_to = 'sftp://example.com/base'
+    
+    foo.task('osgi:resolve:dependencies').invoke
+    URI.should_receive(:upload).once.
+      with(URI.parse('sftp://example.com/base/osgi/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar'), 
+      artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").to_s, anything)
+    URI.should_receive(:upload).once.
+           with(URI.parse('sftp://example.com/base/osgi/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.pom'), 
+           artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").pom.to_s, anything)
+    foo.task('osgi:upload:dependencies').invoke
+    
+    
+  end
+  
 end
 
 describe 'osgi:clean:dependencies' do
