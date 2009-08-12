@@ -81,20 +81,15 @@ module OSGi
   end
   
   class InstallTask < Rake::Task
-    include BundleCollector
     attr_accessor :project
 
     def initialize(*args) #:nodoc:
       super
 
       enhance do |task|
-        dependencies = []
-        project.projects.each do |subp|
-          subp_deps = collect(subp)
-          dependencies << subp_deps unless subp_deps.empty?
-        end
-
-        dependencies << collect(project)
+        project.dependencies if (!File.exists? File.join(project.base_dir, "dependencies.yml"))
+          
+        dependencies = YAML::load(File.read(File.join(project.base_dir, "dependencies.yml")))
         
         dependencies.flatten.sort.each {|bundle|
           begin
@@ -179,12 +174,21 @@ module OSGi
       Project.local_task('osgi:resolve:dependencies') { |name| "Resolving dependencies for #{name}" }
       desc 'Installs OSGi dependencies in the Maven local repository'
       Project.local_task('osgi:install:dependencies') { |name| "Install dependencies for #{name}" }
+      desc 'Cleans the dependencies.yml file'
+      Project.local_task('osgi:clean:dependencies') {|name| "Clean dependencies for #{name}"}
     end
 
     before_define do |project|
       dependencies = DependenciesTask.define_task('osgi:resolve:dependencies')
       dependencies.project = project
       install = InstallTask.define_task('osgi:install:dependencies')
+      install.project = project
+      
+      
+      clean = Rake::Task.define_task('osgi:clean:dependencies').enhance do
+        Buildr::write File.join(project.base_dir, "dependencies.yml"), 
+          project.projects.inject({}) {|hash, p| hash.merge({p.name => []})}.merge({project.name => []}).to_yaml
+      end
       install.project = project
     end
 

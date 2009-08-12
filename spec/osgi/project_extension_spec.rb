@@ -224,4 +224,23 @@ MANIFEST
     pending
   end
   
+  it 'should jar up OSGi bundles represented as directories' do
+    
+  end
+  
+end
+
+describe 'osgi:clean:dependencies' do
+  it 'should install a nice and clean dependencies.yml for the project to depend on' do
+    foo = define('foo') {
+      define('bar')
+      define('foobar')
+    }
+    foo.task('osgi:clean:dependencies').invoke
+    File.exist?('dependencies.yml').should be_true
+    deps = YAML::load(File.read('dependencies.yml'))
+    deps["foo"].size.should == 0
+     deps.keys.should include("foo:foobar")
+    deps.keys.should include("foo:bar")
+  end
 end
