@@ -14,6 +14,8 @@
 # the License.
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
+require 'ruby-debug'
+Debugger.start
 
 describe OSGi::ProjectExtension do
   
@@ -38,6 +40,7 @@ end
 describe OSGi::DependenciesTask do
 
   before :all do
+    FileUtils.rm_rf Dir.pwd + "/tmp/eclipse1"
     @eclipse_instances = [Dir.pwd + "/tmp/eclipse1"]
     
     Buildr::write "tmp/eclipse1/plugins/com.ibm.icu-3.9.9.R_20081204/META-INF/MANIFEST.MF", <<-MANIFEST
@@ -203,6 +206,13 @@ describe OSGi::InstallTask do
     @eclipse_instances = [Dir.pwd + "/tmp/eclipse1"]
     download = Buildr::download((Dir.pwd + "/tmp/eclipse1/plugins/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar") => "http://www.intalio.org/public/maven2/eclipse/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar")
     download.invoke
+    Buildr::write "tmp/eclipse1/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Require-Bundle: org.eclipse.core.resources2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.1.R_20090512
+MANIFEST
   end
   
   it 'should install the dependencies into the local Maven repository' do
@@ -215,12 +225,28 @@ Require-Bundle: org.eclipse.debug.ui
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
+    foo.task('osgi:resolve:dependencies').invoke
+    foo.task('osgi:install:dependencies').invoke
     
-    lambda { foo.task('osgi:install:dependencies').invoke }.should change { File.exist?(artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").to_s) }.to(true)
+    File.exist?(artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").to_s).should be_true
+    
   end
   
   it 'should jar up OSGi bundles represented as directories' do
+    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: org.eclipse.debug.ui,org.eclipse.core.resources;bundle-version=3.5.1.R_20090512
+MANIFEST
+    }
+    foo.osgi.registry.containers = @eclipse_instances.dup
     
+    foo.task('osgi:resolve:dependencies').invoke
+    foo.task('osgi:install:dependencies').invoke
+    
+    File.exist?(artifact("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090512").to_s).should be_true
   end
   
 end

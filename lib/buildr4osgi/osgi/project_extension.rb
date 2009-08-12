@@ -35,7 +35,6 @@ module OSGi
       if bundle.is_a? Bundle
         if bundle.resolve!(project)
           if !(@bundles.include? bundle)
-            
             @bundles << bundle
             @bundles |= bundle.fragments(project)       
             (bundle.bundles + bundle.imports).each {|b|
@@ -94,8 +93,27 @@ module OSGi
         end
 
         dependencies |= collect(project)
+        
         dependencies.sort.each {|bundle|
           begin
+            if File.directory?(bundle.file)
+              begin
+               
+                tmp = File.join(Dir::tmpdir, "bundle")
+                base = Pathname.new(bundle.file)
+                Zip::ZipFile.open(tmp, Zip::ZipFile::CREATE) {|zipfile|
+                  Dir.glob("#{bundle.file}/**/**").each do |file|
+                    zipfile.add(Pathname.new(file).relative_path_from(base), file)
+                  end
+                }
+                bundle.file = tmp
+                
+              rescue Exception => e
+                error e.message
+                error e.backtrace.join("\n")
+              end
+              
+            end
             artifact = Buildr::artifact(bundle.to_s)
             if local
               installed = Buildr.repositories.locate(artifact)

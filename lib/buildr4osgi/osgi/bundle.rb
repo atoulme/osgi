@@ -237,7 +237,9 @@ module OSGi #:nodoc:
         return project.osgi.registry.resolved_containers.collect {|i| 
           i.find(:name => name)}.flatten.compact.collect{|b| b.dup }
       else
-        [self]
+        project.osgi.registry.resolved_containers.collect {|i| 
+        i.find(:name => name, :version => version)
+        }.flatten.compact.collect{|b| b.dup }
       end
     end
 
