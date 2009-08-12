@@ -201,14 +201,8 @@ end
 describe OSGi::InstallTask do
   before :all do
     @eclipse_instances = [Dir.pwd + "/tmp/eclipse1"]
-    
-    #Buildr::download "something"
-    # Buildr::download "tmp/eclipse1/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
-    # Manifest-Version: 1.0
-    # Bundle-ManifestVersion: 2
-    # Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
-    # Bundle-Version: 3.5.0.R_20090512
-    # MANIFEST
+    download = Buildr::download((Dir.pwd + "/tmp/eclipse1/plugins/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar") => "http://www.intalio.org/public/maven2/eclipse/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar")
+    download.invoke
   end
   
   it 'should install the dependencies into the local Maven repository' do
@@ -217,11 +211,12 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
-Require-Bundle: com.ibm.icu,org.eclipse.core.resources
+Require-Bundle: org.eclipse.debug.ui
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
-    pending
+    
+    lambda { foo.task('osgi:install:dependencies').invoke }.should change { File.exist?(artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").to_s) }.to(true)
   end
   
   it 'should jar up OSGi bundles represented as directories' do

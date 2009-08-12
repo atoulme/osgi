@@ -81,23 +81,31 @@ module OSGi
   end
   
   class InstallTask < Rake::Task
-    attr_accessor :project
+    include BundleCollector
+    attr_accessor :project, :local
 
     def initialize(*args) #:nodoc:
       super
 
       enhance do |task|
-        project.dependencies if (!File.exists? File.join(project.base_dir, "dependencies.yml"))
-          
-        dependencies = YAML::load(File.read(File.join(project.base_dir, "dependencies.yml")))
-        
-        dependencies.flatten.sort.each {|bundle|
+        dependencies = []
+        project.projects.each do |subp|
+          dependencies |= collect(subp)
+        end
+
+        dependencies |= collect(project)
+        dependencies.sort.each {|bundle|
           begin
-          artifact = Buildr::artifact(bundle.to_s)
-          installed = Buildr.repositories.locate(artifact)
-          mkpath File.dirname(installed)
-          cp bundle.file, installed
-          info "Installed #{installed}"
+            artifact = Buildr::artifact(bundle.to_s)
+            if local
+              installed = Buildr.repositories.locate(artifact)
+              mkpath File.dirname(installed)
+              cp bundle.file, installed
+              info "Installed #{installed}"
+            else
+              Buildr::upload Buildr::artifact(bundle.to_s).from(bundle.file)
+              info "Uploaded #{bundle}"
+            end
           rescue Exception => e
             error "Error installing the artifact #{bundle.to_s}"
             #puts e.backtrace.join("\n")
@@ -171,9 +179,11 @@ module OSGi
 
     first_time do
       desc 'Evaluate OSGi dependencies and places them in dependencies.yml'
-      Project.local_task('osgi:resolve:dependencies') { |name| "Resolving dependencies for #{name}" }
+      Project.local_task('osgi:resolve:dependencies') { |name| "Resolve dependencies for #{name}" }
       desc 'Installs OSGi dependencies in the Maven local repository'
       Project.local_task('osgi:install:dependencies') { |name| "Install dependencies for #{name}" }
+      desc 'Installs OSGi dependencies in the Maven local repository'
+      Project.local_task('osgi:upload:dependencies') { |name| "Upload dependencies for #{name}" }
       desc 'Cleans the dependencies.yml file'
       Project.local_task('osgi:clean:dependencies') {|name| "Clean dependencies for #{name}"}
     end
@@ -183,6 +193,9 @@ module OSGi
       dependencies.project = project
       install = InstallTask.define_task('osgi:install:dependencies')
       install.project = project
+      install.local = true
+      upload = InstallTask.define_task('osgi:upload:dependencies')
+      upload.project = project
       
       
       clean = Rake::Task.define_task('osgi:clean:dependencies').enhance do
