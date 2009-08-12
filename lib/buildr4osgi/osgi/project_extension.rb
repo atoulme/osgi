@@ -25,12 +25,14 @@ module OSGi
     end
     
     def collectBundles(bundles, bundle, project)
-      bundle.resolve!(project)
-      if !(bundles.include? bundle)
-        bundles << bundle
-        bundle.bundles.each {|b|
-          collectBundles(bundles, b, project)  
-        }
+      if bundle.resolve!(project)
+        if !(bundles.include? bundle)
+          bundles << bundle
+          bundles += bundle.fragments(project)
+          bundle.bundles.each {|b|
+            collectBundles(bundles, b, project)  
+          }
+        end
       end
     end
     
@@ -59,7 +61,7 @@ module OSGi
   end
   
   class InstallTask < Rake::Task
-
+    include BundleCollector
     attr_accessor :project
 
     def initialize(*args) #:nodoc:

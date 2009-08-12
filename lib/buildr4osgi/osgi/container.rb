@@ -26,7 +26,7 @@ module OSGi
 
     # bundles: the bundles of the eclipse instance loaded on startup
     # location: the location of the Eclipse instance
-    attr_accessor :bundles, :location
+    attr_reader :bundles, :fragments, :location
 
     # Default constructor for an OSGiRegistry
     # 
@@ -36,6 +36,7 @@ module OSGi
     def initialize(location, plugin_locations = ["dropins", "plugins"])
       @location = location
       @bundles = []
+      @fragments = []
       plugin_locations.each do |p_loc|
         p_loc_complete = File.join(@location, p_loc)
         warn "Folder #{p_loc_complete} not found!" if !File.exists? p_loc_complete 
@@ -53,7 +54,12 @@ module OSGi
             entry =  zipfile.find_entry("META-INF/MANIFEST.MF")
             if (entry != nil)
               manifest = Manifest.read(zipfile.read("META-INF/MANIFEST.MF"))
-              @bundles << Bundle.fromManifest(manifest, absolute_plugin_path) 
+              bundle = Bundle.fromManifest(manifest, absolute_plugin_path) 
+              if bundle.fragment? 
+                @fragments << bundle
+              else
+                @bundles << bundle
+              end
             end
             zipfile.close
           else
@@ -69,23 +75,40 @@ module OSGi
                 rescue
                   file.close
                 end
-                @bundles << Bundle.fromManifest(manifest, absolute_plugin_path)
+                bundle = Bundle.fromManifest(manifest, absolute_plugin_path)
+                if bundle.fragment? 
+                  @fragments << bundle
+                else
+                  @bundles << bundle
+                end
               end
             end
           end
         end
       end
       @bundles = @bundles.compact
+      @fragments = @fragments.compact
     end
     
     # Return the list of bundles that match the criteria passed as arguments
     def find(criteria = {:name => "", :version =>""})
-      selected = bundles
+      selected = bundles + fragments
       if (criteria[:name])
         selected = selected.select {|b| b.name == criteria[:name]}
       end
       if (criteria[:version])
         selected = selected.select {|b| b.version == criteria[:version]}
+      end
+      selected
+    end
+    
+    def find_fragments(criteria = {:host => "", :version => ""})
+      selected = fragments
+      if (criteria[:host])
+        selected = selected.select {|b| b.fragment.name == criteria[:host]}
+      end
+      if (criteria[:version])
+        selected = selected.select {|b| b.fragment.version == criteria[:version]}
       end
       selected
     end

@@ -22,7 +22,7 @@ module OSGi #:nodoc:
     attr_accessor :major, :minor, :tiny, :qualifier
     
     def initialize(string)
-      digits = string.split(".")
+      digits = string.gsub(/\"/, '').split(".")
       @major = digits[0]
       @minor = digits[1]
       @tiny = digits[2]
@@ -86,6 +86,7 @@ module OSGi #:nodoc:
     attr_accessor :min, :max, :min_inclusive, :max_inclusive
     
     def self.parse(string)
+      return string if string.is_a?(VersionRange)
       if !string.nil? && (match = string.match /\s*([\[|\(])([0-9|\.]*),([0-9|\.]*)([\]|\)])/)
         range = VersionRange.new
         range.min = Version.new(match[2])
@@ -126,14 +127,13 @@ module OSGi #:nodoc:
     # The optional tag is present on bundles resolved as dependencies, marked as optional.
     # The start level is deduced from the bundles.info file. Default is -1.
     # The lazy start is found in the bundles.info file
-    attr_accessor :name, :version, :bundles, :file, :optional, :start_level, :lazy_start, :group
+    attr_accessor :name, :version, :bundles, :file, :optional, :start_level, :lazy_start, :group, :fragment
     
     alias :id :name
     
     def initialize(name, version, file=nil, bundles=[], optional = false)
       @name = name
-      @version = version.is_a?(VersionRange) ? version : VersionRange.parse(version)
-      @version ||= version
+      @version = VersionRange.parse(version) || (version.nil? ? nil : version.gsub(/\"/, ''))
       @bundles = bundles
       @file = file
       @optional = optional
@@ -167,11 +167,22 @@ module OSGi #:nodoc:
       else
         bundle.start_level = -1
       end
+      unless (manifest.first["Fragment-Host"].nil?)
+        bundle.fragment = Bundle.new(manifest.first["Fragment-Host"].keys.first.strip, manifest.first["Fragment-Host"].first[B_DEP_VERSION])
+      end
       return bundle
+    end
+    
+    def fragment?
+      !fragment.nil?
     end
     
     def to_s
       to_spec()
+    end
+    
+    def to_yaml(opts = {})
+      to_s.to_yaml(opts)
     end
     
     def <=>(other)
@@ -196,7 +207,7 @@ module OSGi #:nodoc:
     
     def resolve(project, bundles = resolve_matching_artifacts(project))
       osgi = self.dup
-      osgi.resolve!(project, bundles)
+      nil if !osgi.resolve!(project, bundles)
       osgi
     end
     
@@ -209,15 +220,31 @@ module OSGi #:nodoc:
         end
       if bundle.nil?
         warn "Could not resolve bundle for #{self.to_s}" 
-      else
-        @name = bundle.name
-        @version = bundle.version
-        @bundles = bundle.bundles
-        @file = bundle.file
-        @optional = bundle.optional
-        @start_level = bundle.start_level
-        @group = bundle.group
+        return false
       end
+      @name = bundle.name
+      @version = bundle.version
+      @bundles = bundle.bundles
+      @file = bundle.file
+      @optional = bundle.optional
+      @start_level = bundle.start_level
+      @group = bundle.group
+      
+      true
+    end
+    
+    def fragments(project)
+      project.osgi.registry.resolved_containers.collect {|i| 
+        i.find_fragments(:host => name).select{|f|
+          if f.fragment.version.is_a? VersionRange
+            f.fragment.version.in_range(version)
+          elsif f.fragment.version.nil?
+            true
+          else
+            f.fragment.version == version 
+          end
+        }.flatten.compact.collect{|b| b.dup }
+      }
     end
     
   end
