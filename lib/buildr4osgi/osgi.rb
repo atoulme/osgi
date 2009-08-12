@@ -16,4 +16,5 @@
 require 'buildr4osgi/osgi/bundle'
 require 'buildr4osgi/osgi/container'
 require 'buildr4osgi/osgi/registry'
+require 'buildr4osgi/osgi/resolving_strategies'
 require 'buildr4osgi/osgi/project_extension'

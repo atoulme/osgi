@@ -16,10 +16,13 @@
 # Methods added to Project for compiling, handling of resources and generating source documentation.
 module OSGi
   
-  module BundleCollector
+  module BundleCollector #:nodoc:
     
     attr_accessor :bundles
     
+    # Collects the bundles associated with a project.
+    # Returns them as a sorted array.
+    #
     def collect(project)
       @bundles = []
       return [] unless File.exists?("#{project.base_dir}/META-INF/MANIFEST.MF")
@@ -31,6 +34,8 @@ module OSGi
       @bundles.sort
     end
     
+    # Collects the bundles associated with the bundle
+    # 
     def _collect(bundle, project)
       if bundle.is_a? Bundle
         if bundle.resolve!(project)
@@ -57,7 +62,7 @@ module OSGi
     
   end
   
-  class DependenciesTask < Rake::Task
+  class DependenciesTask < Rake::Task #:nodoc:
     include BundleCollector
     attr_accessor :project
 
@@ -79,7 +84,7 @@ module OSGi
     end
   end
   
-  class InstallTask < Rake::Task
+  class InstallTask < Rake::Task #:nodoc:
     include BundleCollector
     attr_accessor :project, :local
 
@@ -127,74 +132,15 @@ module OSGi
             end
           rescue Exception => e
             error "Error installing the artifact #{bundle.to_s}"
-            print e.message
-            print e.backtrace.join("\n")
+            #print e.message
+            #print e.backtrace.join("\n")
           end
         }
       end
     end
   end
-
-  module PackageResolvingStrategies
   
-    def prompt(package, bundles)
-      bundle = nil
-      while (!bundle)
-        puts "This package #{package} is exported by all the bundles present.\n" +
-              "Choose a bundle amongst those presented or press A to select them all:\n" + bundles.sort! {|a, b| a.version <=> b.version }.
-        collect {|b| "\t#{bundles.index(b) +1}. #{b.name} #{b.version}"}.join("\n")
-        number = gets.chomp
-        begin
-          return bundles if (number == 'A')
-          number = number.to_i
-          number -= 1
-          bundle = bundles[number] if number >= 0 # no negative indexing here.
-        rescue Exception => e
-          puts "Invalid index"
-          #do nothing
-        end
-      end
-      [bundle]
-    end
-    
-    def all(package, bundles)
-      return bundles
-    end  
-    
-    module_function :prompt, :all
-  end
-  
-  module BundleResolvingStrategies
-    def latest(bundles)
-      bundles.sort {|a, b| a.version <=> b.version}.last
-    end
-
-    def oldest(bundles)
-      bundles.sort {|a, b| a.version <=> b.version}.first
-    end
-
-    def prompt(bundles)
-      bundle = nil
-      while (!bundle)
-        puts "Choose a bundle amongst those presented:\n" + bundles.sort! {|a, b| a.version <=> b.version }.
-        collect {|b| "\t#{bundles.index(b) +1}. #{b.name} #{b.version}"}.join("\n")
-        number = gets.chomp
-        begin
-          number = number.to_i
-          number -= 1
-          bundle = bundles[number] if number >= 0 # no negative indexing here.
-        rescue Exception => e
-          puts "Invalid index"
-          #do nothing
-        end
-      end
-      bundle
-    end
-
-    module_function :latest, :oldest, :prompt
-  end
-  
-  module ProjectExtension
+  module ProjectExtension #:nodoc:
     include Extension
 
     first_time do
@@ -225,11 +171,15 @@ module OSGi
       install.project = project
     end
 
+    #
+    # Calls the osgi:resolve:dependencies task
+    # It will compute the dependencies of the project and place them in dependencies.yml
+    #
     def dependencies(&block)
       task('osgi:resolve:dependencies').enhance &block
     end
 
-    class OSGi
+    class OSGi #:nodoc:
 
       attr_reader :options, :registry
 
@@ -242,6 +192,11 @@ module OSGi
         @registry ||= ::OSGi::Registry.new
       end
 
+      # The options for the osgi.options method
+      #   package_resolving_strategy:
+      #     The package resolving strategy, it should be a symbol representing a module function in the OSGi::PackageResolvingStrategies module.
+      #   bundle_resolving_strategy:
+      #     The bundle resolving strategy, it should be a symbol representing a module function in the OSGi::BundleResolvingStrategies module.
       class Options
         attr_accessor :package_resolving_strategy, :bundle_resolving_strategy
 
@@ -253,6 +208,9 @@ module OSGi
       end
     end
     
+    # Makes a osgi instance available to the project.
+    # The osgi object may be used to access OSGi containers
+    # or set options, currently the resolving strategies.
     def osgi
       @osgi ||= OSGi.new(self)
       @osgi
@@ -267,8 +225,8 @@ module OSGi
   end
 end
 
-module Buildr
-  class Project
+module Buildr #:nodoc:
+  class Project #:nodoc:
     include OSGi::ProjectExtension
   end
 end

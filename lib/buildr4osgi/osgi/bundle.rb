@@ -17,11 +17,14 @@ module OSGi #:nodoc:
 
   OSGI_GROUP_ID = "osgi"
 
+  #
+  # A class to represent OSGi versions.
+  #
   class Version
 
     attr_accessor :major, :minor, :tiny, :qualifier
 
-    def initialize(string)
+    def initialize(string) #:nodoc:
       digits = string.gsub(/\"/, '').split(".")
       @major = digits[0]
       @minor = digits[1]
@@ -33,7 +36,7 @@ module OSGi #:nodoc:
     end
 
 
-    def to_s
+    def to_s #:nodoc:
       str = [major]
       str << minor if minor
       str << tiny if minor && tiny
@@ -41,7 +44,7 @@ module OSGi #:nodoc:
       str.compact.join(".")
     end
 
-    def <=>(other)
+    def <=>(other) #:nodoc:
       if other.is_a? String
         other = Version.new(other)
       elsif other.nil?
@@ -60,31 +63,34 @@ module OSGi #:nodoc:
       return 0
     end
 
-    def <(other)
+    def <(other) #:nodoc:
       (self.<=>(other)) == -1
     end
 
-    def >(other)
+    def >(other) #:nodoc:
       (self.<=>(other)) == 1
     end
 
-    def ==(other)
+    def ==(other) #:nodoc:
       (self.<=>(other)) == 0
     end
 
-    def <=(other)
+    def <=(other) #:nodoc:
       (self.==(other)) || (self.<(other))
     end
 
-    def >=(other)
+    def >=(other) #:nodoc:
       (self.==(other)) || (self.>(other))
     end
   end
 
-  class VersionRange
+  class VersionRange #:nodoc:
 
     attr_accessor :min, :max, :min_inclusive, :max_inclusive
 
+    # Parses a string into a VersionRange.
+    # Returns false if the string could not be parsed.
+    #
     def self.parse(string)
       return string if string.is_a?(VersionRange)
       if !string.nil? && (match = string.match /\s*([\[|\(])([0-9|\.]*),([0-9|\.]*)([\]|\)])/)
@@ -99,25 +105,34 @@ module OSGi #:nodoc:
       end
     end
 
-    def to_s
+    def to_s #:nodoc:
       "#{ min_inclusive ? '[' : '('}#{min},#{max}#{max_inclusive ? ']' : ')'}"
     end
 
+    # Returns true if the version is in the range of this VersionRange object.
+    # Uses OSGi versioning rules to determine if the version is in range.
+    #
     def in_range(version)
       (min_inclusive ? min <= version : min < version) && (max_inclusive ? max >= version : max > version)
     end
   end
 
+  # A class to represent an OSGi bundle package.
+  # They are created from the Import-Package header.
+  #
   class BundlePackage
     attr_accessor :name, :version, :bundles, :imports
     
-    def initialize(name, version, args = {})
+    def initialize(name, version, args = {}) #:nodoc:
       @name= name
       @version = VersionRange.parse(version) || (version.nil? ? nil : version.gsub(/\"/, ''))
       @bundles = args[:bundles] || []
       @imports = args[:imports] || []
     end
 
+    #
+    # Resolves the matching artifacts associated with the project.
+    #
     def resolve_matching_artifacts(project)
       resolved = case
       when version.is_a?(VersionRange) then
@@ -130,6 +145,8 @@ module OSGi #:nodoc:
       resolved.flatten.compact.collect{|b| b.dup}
     end
     
+    # Resolves the bundles that export this package.
+    #
     def resolve(project, bundles = resolve_matching_artifacts(project))
       bundles = case bundles.size
       when 0 then []
@@ -140,12 +157,15 @@ module OSGi #:nodoc:
       bundles
     end
     
-    def to_s
+    def to_s #:nodoc:
       "Import Package #{name} with version #{version}"
     end
 
   end
 
+  # A bundle is an OSGi artifact represented by a jar file or a folder.
+  # It contains a manifest file with specific OSGi headers.
+  #
   class Bundle
     include Buildr::ActsAsArtifact
 
@@ -212,11 +232,15 @@ module OSGi #:nodoc:
     # The optional tag is present on bundles resolved as dependencies, marked as optional.
     # The start level is deduced from the bundles.info file. Default is 1.
     # The lazy start is found in the bundles.info file
+    # group is the artifact group used for Maven. By default it is set to OSGI_GROUP_ID.
+    # fragment is a Bundle object that represents the fragment host of this bundle (which means this bundle is a fragment if this field is not null).
+    # exported_packages is an array of strings representing the packages exported by the bundle.
+    # imports is an array of BundlePackage objects representing the packages imported by the bundle.
     attr_accessor :name, :version, :bundles, :file, :optional, :start_level, :lazy_start, :group, :fragment, :exported_packages, :imports
 
     alias :id :name
 
-    def initialize(name, version, args = {:file => nil, :bundles=>[], :imports => [], :optional => false})
+    def initialize(name, version, args = {:file => nil, :bundles=>[], :imports => [], :optional => false}) #:nodoc:
       @name = name
       @version = VersionRange.parse(version) || (version.nil? ? nil : version.gsub(/\"/, ''))
       @bundles = args[:bundles] || []
@@ -229,6 +253,9 @@ module OSGi #:nodoc:
       @group = OSGI_GROUP_ID
     end
 
+    #
+    # Resolves the matching artifacts associated with the project.
+    #
     def resolve_matching_artifacts(project)
       if version.is_a? VersionRange
         return project.osgi.registry.resolved_containers.collect {|i| 
@@ -243,19 +270,21 @@ module OSGi #:nodoc:
       end
     end
 
+    # Returns true if the bundle is an OSGi fragment.
+    #
     def fragment?
       !fragment.nil?
     end
 
-    def to_s
+    def to_s #:nodoc:
        to_spec()
     end
 
-    def to_yaml(opts = {})
+    def to_yaml(opts = {}) #:nodoc:
       to_s.to_yaml(opts)
     end
 
-    def <=>(other)
+    def <=>(other) #:nodoc:
       if other.is_a?(Bundle)
        return to_s <=> other.to_s
       else
@@ -263,12 +292,18 @@ module OSGi #:nodoc:
       end
     end
 
+    # Resolve a bundle from itself, by finding the appropriate bundle in the OSGi containers.
+    # Returns a new bundle.
+    #
     def resolve(project, bundles = resolve_matching_artifacts(project))
       osgi = self.dup
       nil if !osgi.resolve!(project, bundles)
       osgi
     end
 
+    # Resolve a bundle from itself, by finding the appropriate bundle in the OSGi containers.
+    # Returns self.
+    #
     def resolve!(project, bundles = resolve_matching_artifacts(project))
       bundle = case bundles.size
       when 0 then nil
@@ -291,6 +326,8 @@ module OSGi #:nodoc:
       true
     end
 
+    # Finds the fragments associated with this bundle.
+    #
     def fragments(project)
       project.osgi.registry.resolved_containers.collect {|i| 
         i.find_fragments(:host => name).select{|f|

@@ -20,15 +20,19 @@ unless (defined?(Zip::ZipFile))
   require "zip/zipfilesystem"
 end
 
-module OSGi
+module OSGi #:nodoc:
   
+  # This class represents an OSGi container.
+  # It contains the bundles, fragments, and the location of the OSGi container.
+  # A typical OSGi container is an Eclipse instance.
+  #
   class Container
 
     # bundles: the bundles of the eclipse instance loaded on startup
     # location: the location of the Eclipse instance
     attr_reader :bundles, :fragments, :location
 
-    # Default constructor for an OSGiRegistry
+    # Default constructor for a Container
     # 
     # location: the location of the Eclipse instance
     # plugin_locations, default value is ["dropins", "plugins"] 
@@ -92,7 +96,7 @@ module OSGi
       @fragments = @fragments.compact
     end
     
-    # Return the list of bundles that match the criteria passed as arguments
+    # Return the list of bundles and fragments that match the criteria passed as arguments
     # Possible criterias:
     #  name: the name of the bundle
     #  version: the version of the bundle
@@ -111,6 +115,11 @@ module OSGi
       selected
     end
     
+    # Return the list of fragments that match the criteria passed as arguments
+    # Possible criterias:
+    #  host: the name of the host bundle
+    #  version: the version of the bundle
+    #
     def find_fragments(criteria = {:host => "", :version => ""})
       selected = fragments
       if (criteria[:host])
