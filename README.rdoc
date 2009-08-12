@@ -2,14 +2,75 @@
 
 A plugin for adding OSGi support to Buildr.
 
-See the official Buildr site:
-http://buildr.apache.org/
+See the "official Buildr site":http://buildr.apache.org
 
 == Get Started
 
+h2. Prologue
+You just had this OSGi bundle started, and everything runs in your development environment.
+You hit one of those issues:
+* You can't run a reproducible build.
+* Bundles are hard to package.
+* And it looks like you are going to have to find a way to resolve all your plugin dependencies (none of them are in a Maven repository!)
+
+h2. Enter OSGi
+Your bundle uses one of the mechanisms defined by OSGi to define dependencies:
+*Require-Bundle: you require some bundles, optionally with a version range or a version.
+*Import-Package: you import a package exported by other bundles.
+*Fragment-Host: your bundle has fragments, they will be added to the bundle classpath on activation.
+
+Each of those instructions have their own use. There's just no way you are going to resolve all your dependencies manually though.
+
+h2. Buildr4osgi jumps on stage
+h3. Create your buildfile
+* create a normal buildfile for your project.
+* add <code>require 'buildr4osgi'</code> at the start of the file.
+h3. Run <code>buildr osgi:resolve:dependencies ENV[BUILDR_OSGI]=/path/to/your/eclipse/installation</code> from the command line.
+This task will create a dependencies.yml file next to the buildfile, containing all the project dependencies.
+h3. Now run <code>buildr osgi:install:dependencies ENV[BUILDR_OSGI]=/path/to/your/eclipse/installation</code>
+You just installed all your dependencies to the local maven repository.
+Ready to share with your team ? Run <code>buildr osgi:upload:dependencies ENV[BUILDR_OSGI]=/path/to/your/eclipse/installation</code>
+h3. Finish configuring the buildfile
+OK, this is where the paint is still wet.
+You need to access the <code>dependencies.yml</code> file, read it, and adds the dependencies to the compilation dependencies of the file.
+Here is a quick example:
+<code>
+require "buildr4osgi"
+
+[..]
+$dependencies = File.exists?("dependencies.yml") ? YAML.load(File.read("dependencies.yml")) : {}
+
+def deps(name)
+  [] if ($dependencies[name].nil?) 
+  $dependencies[name]
+end
+
+define "bpmn-modeler" do
+  [..]
+  
+  define 'org.eclipse.stp.bpmn'  do
+    compile.with deps(project.name)
+    package :jar
+  end
+
+  define 'org.eclipse.stp.bpmn.diagram' do
+    compile.from(_('customsrc')).with [project('org.eclipse.stp.bpmn'), project('org.eclipse.stp.bpmn.edit')] + deps(project.name) 
+    package :jar
+  end
+
+  define 'org.eclipse.stp.bpmn.validation'  do
+    compile.with [project('org.eclipse.stp.bpmn'), project('org.eclipse.stp.bpmn.diagram')] + deps(project.name) + deps('bpmn-modeler:org.eclipse.stp.bpmn.diagram')
+    package :jar
+  end
+end
+</code>
+
 === Install Buildr4osgi
 
-not yet available.
+* See the "github instructions on how to setup to install their gems":http://gems.github.com
+* For the impatient:
+** gem sources -a http://gems.github.com
+** sudo gem install intalio-buildr4osgi
 
 == License
 
