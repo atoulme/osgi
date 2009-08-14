@@ -46,6 +46,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: com.ibm.icu; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
+Export-Package: my.package;version="1.0.0"
 MANIFEST
     Buildr::write "tmp/eclipse1/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
@@ -100,6 +101,32 @@ MANIFEST
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu" && b.version="[3.4.0,3.5.0)"}.should_not be_empty
     foo.manifest_dependencies.select {|b| b.name == "org.eclipse.core.resources" && b.version="3.5.0.R_20090512"}.should_not be_empty
+  end
+  
+  it 'should resolve dependencies with package imports' do
+    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Import-Package: my.package
+MANIFEST
+    }
+    foo.osgi.registry.containers = @eclipse_instances.dup
+    foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
+  end
+  
+  it 'should resolve dependencies with package imports with version requirements' do
+    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Import-Package: my.package;version="0.9.0"
+MANIFEST
+    }
+    foo.osgi.registry.containers = @eclipse_instances.dup
+    foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
   end
   
   it 'should write a file named dependencies.yml with the dependencies of the project' do

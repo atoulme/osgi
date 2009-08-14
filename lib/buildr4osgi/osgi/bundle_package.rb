@@ -16,7 +16,7 @@
 module OSGi #:nodoc:
 
   # A class to represent an OSGi bundle package.
-  # They are created from the Import-Package header.
+  # Created from the Import-Package or Provide-Package (Export-Package) header.
   #
   class BundlePackage
     attr_accessor :name, :version, :bundles, :imports, :is_export

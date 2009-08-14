@@ -111,7 +111,7 @@ module OSGi #:nodoc:
     end
 
     def to_s #:nodoc:
-      "#{ min_inclusive ? '[' : '('}#{min},#{max}#{max_inclusive ? ']' : ')'}"
+      "#{ min_inclusive ? '[' : '('}#{min},#{max_infinite ? "infinite" : max}#{max_inclusive ? ']' : ')'}"
     end
 
     # Returns true if the version is in the range of this VersionRange object.

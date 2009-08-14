@@ -25,12 +25,7 @@ module OSGi
     #
     def collect(project)
       @bundles = []
-      return [] unless File.exists?("#{project.base_dir}/META-INF/MANIFEST.MF")
-      as_bundle = Bundle.fromManifest(Manifest.read(File.read(File.join(project.base_dir, "META-INF/MANIFEST.MF"))), project.name)
-      return [] if as_bundle.nil?
-      as_bundle.resolve!(project)
-      as_bundle.imports.each{ |i| _collect(i, project)}
-      as_bundle.bundles.each {|b| _collect(b, project)}
+      project.manifest_dependencies().each {|dep| _collect(dep, project)}
       @bundles.sort
     end
     
@@ -222,7 +217,7 @@ module OSGi
     def manifest_dependencies()
       return [] unless File.exists?("#{base_dir}/META-INF/MANIFEST.MF")
       as_bundle = Bundle.fromManifest(Manifest.read(File.read(File.join(project.base_dir, "META-INF/MANIFEST.MF"))), project.name)
-      as_bundle.nil? ? [] : as_bundle.bundles
+      as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve(project)} + as_bundle.imports.collect {|i| i.resolve(project)}.flatten
     end
   end
 end

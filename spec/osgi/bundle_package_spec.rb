@@ -15,3 +15,12 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
+describe OSGi::BundlePackage do
+  
+  it 'should have a nice string representation' do
+    package = OSGi::BundlePackage.new("my.package", "1.0.0")
+    package2 = OSGi::BundlePackage.new("my.package", "[1.0.0,2.0.0]")
+    package.to_s.should == "Package my.package; version [1.0.0,infinite)"
+    package2.to_s.should == "Package my.package; version [1.0.0,2.0.0]"
+  end
+end
