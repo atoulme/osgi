@@ -21,6 +21,15 @@ describe OSGi::Registry do
     define('foo').osgi.registry.should be_instance_of(OSGi::Registry)
   end
   
+  it 'should be possible to set containers from the Buildr settings' do
+    pending "Need to know how to fake buildr settings"
+  end
+  
+  it 'should be possible to set the containers from the OSGi environment variables' do
+    ENV['OSGi'] = "foo;bar"
+    define('foo').osgi.registry.containers.should == ["foo","bar"]
+  end
+  
   it 'should be possible to modify the containers in the registry before the resolved_instances method is called' do
     foo = define('foo')
     lambda {foo.osgi.registry.containers << "hello"}.should_not raise_error

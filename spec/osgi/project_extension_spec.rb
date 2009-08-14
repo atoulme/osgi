@@ -14,8 +14,6 @@
 # the License.
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
-require 'ruby-debug'
-Debugger.start
 
 describe OSGi::ProjectExtension do
   
