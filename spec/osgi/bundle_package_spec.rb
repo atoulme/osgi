@@ -13,10 +13,5 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'buildr4osgi/osgi/version'
-require 'buildr4osgi/osgi/bundle'
-require 'buildr4osgi/osgi/bundle_package'
-require 'buildr4osgi/osgi/container'
-require 'buildr4osgi/osgi/registry'
-require 'buildr4osgi/osgi/resolving_strategies'
-require 'buildr4osgi/osgi/project_extension'
+require File.join(File.dirname(__FILE__), '../spec_helpers')
+

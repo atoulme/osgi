@@ -17,54 +17,6 @@ module OSGi #:nodoc:
 
   OSGI_GROUP_ID = "osgi"
 
-  # A class to represent an OSGi bundle package.
-  # They are created from the Import-Package header.
-  #
-  class BundlePackage
-    attr_accessor :name, :version, :bundles, :imports, :is_export
-    
-    def initialize(name, version, args = {}) #:nodoc:
-      @name= name
-      @is_export = args[:is_export]
-      @version = (is_export ? version.gsub(/\"/, '') : VersionRange.parse(version, true)) if version
-      @bundles = args[:bundles] || []
-      @imports = args[:imports] || []
-    end
-
-    #
-    # Resolves the matching artifacts associated with the project.
-    #
-    def resolve_matching_artifacts(project)
-      resolved = case
-      when version.is_a?(VersionRange) then
-        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
-      when version.nil? then
-        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name)}
-      else
-        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
-      end
-      resolved.flatten.compact.collect{|b| b.dup}
-    end
-    
-    # Resolves the bundles that export this package.
-    #
-    def resolve(project, bundles = resolve_matching_artifacts(project))
-      bundles = case bundles.size
-      when 0 then []
-      when 1 then bundles
-      else
-        bundles = OSGi::PackageResolvingStrategies.send(project.osgi.options.package_resolving_strategy, name, bundles)
-      end
-      warn "No bundles found exporting the package #{name}; version=#{version}" if (bundles.empty?)
-      bundles
-      
-    end
-    
-    def to_s #:nodoc:
-      "Package #{name}; version #{version}"
-    end
-  end
-
   # A bundle is an OSGi artifact represented by a jar file or a folder.
   # It contains a manifest file with specific OSGi headers.
   #
