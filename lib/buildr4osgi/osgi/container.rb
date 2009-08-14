@@ -106,11 +106,12 @@ module OSGi #:nodoc:
       if (criteria[:name])
         selected = selected.select {|b| b.name == criteria[:name]}
       end
-      if (criteria[:version])
+      if (criteria[:version] && criteria[:exports_package].nil?)
         selected = selected.select {|b| b.version == criteria[:version]}
       end
       if (criteria[:exports_package])
-        selected = selected.select {|b| b.exported_packages.include? criteria[:exports_package]}
+        selected = selected.select {|b| !(b.exported_packages.collect {|package| package.name == criteria[:exports_package] && 
+          (criteria[:version].nil? || criteria[:version].in_range(package.version))}.empty?)}
       end
       selected
     end

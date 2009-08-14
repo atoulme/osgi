@@ -49,11 +49,10 @@ module OSGi
         end
       elsif bundle.is_a?(BundlePackage)
         bundle.resolve(project).each {|b| 
-          if !(bundles.include? b)
-            
+          if !(@bundles.include? b)
             @bundles << b
-            (b.bundles + b.imports).each {|b|
-              _collect(b, project)  
+            (b.bundles + b.imports).each {|import|
+              _collect(import, project)  
             }
           end
         }
@@ -73,9 +72,12 @@ module OSGi
         dependencies = {}
         project.projects.each do |subp|
           subp_deps = collect(subp)
-          dependencies[subp.name] = subp_deps unless subp_deps.empty?
+          if subp_deps.empty?
+            warn "No OSGi dependencies found for #{subp.name}"
+          else
+            dependencies[subp.name] = subp_deps
+          end
         end
-
         
         dependencies[project.name] = collect(project)
         

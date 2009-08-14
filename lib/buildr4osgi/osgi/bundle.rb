@@ -17,115 +17,16 @@ module OSGi #:nodoc:
 
   OSGI_GROUP_ID = "osgi"
 
-  #
-  # A class to represent OSGi versions.
-  #
-  class Version
-
-    attr_accessor :major, :minor, :tiny, :qualifier
-
-    def initialize(string) #:nodoc:
-      digits = string.gsub(/\"/, '').split(".")
-      @major = digits[0]
-      @minor = digits[1]
-      @tiny = digits[2]
-      @qualifier = digits[3]
-      raise "Invalid version: " + self.to_s if @major == ""
-      raise "Invalid version: " + self.to_s if @minor == "" && (!@tiny != "" || !@qualifier != "")
-      raise "Invalid version: " + self.to_s if @tiny == "" && !@qualifier != ""
-    end
-
-
-    def to_s #:nodoc:
-      str = [major]
-      str << minor if minor
-      str << tiny if minor && tiny
-      str << qualifier if minor && tiny && qualifier
-      str.compact.join(".")
-    end
-
-    def <=>(other) #:nodoc:
-      if other.is_a? String
-        other = Version.new(other)
-      elsif other.nil?
-        return 1
-      end
-
-      [:major, :minor, :tiny, :qualifier].each do |digit|
-        return 0 if send(digit).nil? 
-
-        comparison = send(digit) <=> other.send(digit)
-        if comparison != 0
-          return comparison
-        end
-
-      end
-      return 0
-    end
-
-    def <(other) #:nodoc:
-      (self.<=>(other)) == -1
-    end
-
-    def >(other) #:nodoc:
-      (self.<=>(other)) == 1
-    end
-
-    def ==(other) #:nodoc:
-      (self.<=>(other)) == 0
-    end
-
-    def <=(other) #:nodoc:
-      (self.==(other)) || (self.<(other))
-    end
-
-    def >=(other) #:nodoc:
-      (self.==(other)) || (self.>(other))
-    end
-  end
-
-  class VersionRange #:nodoc:
-
-    attr_accessor :min, :max, :min_inclusive, :max_inclusive
-
-    # Parses a string into a VersionRange.
-    # Returns false if the string could not be parsed.
-    #
-    def self.parse(string)
-      return string if string.is_a?(VersionRange)
-      if !string.nil? && (match = string.match /\s*([\[|\(])([0-9|\.]*),([0-9|\.]*)([\]|\)])/)
-        range = VersionRange.new
-        range.min = Version.new(match[2])
-        range.max = Version.new(match[3])
-        range.min_inclusive = match[1] == '['
-        range.max_inclusive = match[4] == ']'
-        range
-      else
-        false
-      end
-    end
-
-    def to_s #:nodoc:
-      "#{ min_inclusive ? '[' : '('}#{min},#{max}#{max_inclusive ? ']' : ')'}"
-    end
-
-    # Returns true if the version is in the range of this VersionRange object.
-    # Uses OSGi versioning rules to determine if the version is in range.
-    #
-    def in_range(version)
-      (min_inclusive ? min <= version : min < version) && (max_inclusive ? max >= version : max > version)
-    end
-  end
-
   # A class to represent an OSGi bundle package.
   # They are created from the Import-Package header.
   #
   class BundlePackage
-    attr_accessor :name, :version, :bundles, :imports
+    attr_accessor :name, :version, :bundles, :imports, :is_export
     
     def initialize(name, version, args = {}) #:nodoc:
       @name= name
-      @version = VersionRange.parse(version) || (version.nil? ? nil : version.gsub(/\"/, ''))
+      @is_export = args[:is_export]
+      @version = (is_export ? version.gsub(/\"/, '') : VersionRange.parse(version, true)) if version
       @bundles = args[:bundles] || []
       @imports = args[:imports] || []
     end
@@ -136,11 +37,11 @@ module OSGi #:nodoc:
     def resolve_matching_artifacts(project)
       resolved = case
       when version.is_a?(VersionRange) then
-        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name).select {|b| version.in_range(b.version)}}
+        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
       when version.nil? then
         project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name)}
       else
-        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name).select {|b| version == b.version}}
+        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
       end
       resolved.flatten.compact.collect{|b| b.dup}
     end
@@ -152,15 +53,16 @@ module OSGi #:nodoc:
       when 0 then []
       when 1 then bundles
       else
-        bundles = OSGi::PackageResolvingStrategies.send(project.osgi.options.bundle_resolving_strategy, name, bundles)
+        bundles = OSGi::PackageResolvingStrategies.send(project.osgi.options.package_resolving_strategy, name, bundles)
       end
+      warn "No bundles found exporting the package #{name}; version=#{version}" if (bundles.empty?)
       bundles
+      
     end
     
     def to_s #:nodoc:
-      "Import Package #{name} with version #{version}"
+      "Package #{name}; version #{version}"
     end
-
   end
 
   # A bundle is an OSGi artifact represented by a jar file or a folder.
@@ -194,13 +96,15 @@ module OSGi #:nodoc:
       #Add the required bundles:
       bundles = []
       manifest.first[B_REQUIRE].each_pair {|key, value| bundles << Bundle.new(key.strip, value[B_DEP_VERSION], {:optional => value[B_RESOLUTION] == "optional"}) unless "system.bundle" == key} unless manifest.first[B_REQUIRE].nil?
-      exports = manifest.first[B_EXPORT_PKG]
+      exports = []
+      manifest.first[B_EXPORT_PKG].each_pair {|key, value| exports << BundlePackage.new(key.strip, value["version"])} unless manifest.first[B_EXPORT_PKG].nil?
+      
       #Parse the version
       version = manifest.first[B_VERSION].nil? ? nil : manifest.first[B_VERSION].keys.first
       
       #Read the imports
       imports = []
-      manifest.first[B_IMPORT_PKG].each_pair {|key, value| imports << BundlePackage.new(key.strip, value[B_DEP_VERSION])} unless manifest.first[B_IMPORT_PKG].nil?
+      manifest.first[B_IMPORT_PKG].each_pair {|key, value| imports << BundlePackage.new(key.strip, value["version"], :is_export => false)} unless manifest.first[B_IMPORT_PKG].nil?
       
       #Read the imported packages
       
@@ -340,6 +244,11 @@ module OSGi #:nodoc:
           end
           }
         }.flatten.compact.collect{|b| b.dup }
+      end
+      
+      def ==(other) #:nodoc:
+        return false unless other.is_a?(Bundle)
+        name == other.name && version == other.version    
       end
 
     end

@@ -15,15 +15,27 @@
 
 module OSGi
   
+  #
+  # A class to hold the registered containers. It is possible to add containers until resolved_containers is called,
+  # after which it is not possible to modify the registry anymore.
+  #
   class Registry
     
+    # 
+    # Sets the containers of the registry
+    # Raises an exception if containers have been resolved already.
+    #
     def containers=(containers)
-      raise "OSGi containers are already set" if @containers
+      raise "Cannot set containers, containers have been resolved already" if @resolved_containers
       @containers = containers
     end
     
+    #
+    # Returns the containers associated with this registry.
+    # The list of containers is modifiable if resolved_containers hasn't been called yet.
+    #
     def containers
-      unless @containers # we compute instances only once. Note that we keep this modifiable.
+      unless @containers
         @containers = [Buildr.settings.user, Buildr.settings.build].inject([]) { |repos, hash|
           repos | Array(hash['osgi'] && hash['osgi']['containers'])
         }
@@ -31,16 +43,17 @@ module OSGi
           @containers |= ENV['OSGi'].split(';')
         end
       end
-      @containers
+      @resolved_containers.nil? ? @containers : @containers.dup.freeze
     end
     
+    #
+    # Resolves the containers registered in this registry.
+    # This is a long running operation where all the containers are parsed.
+    #
+    # Containers are resolved only once.
+    #
     def resolved_containers
-      unless @resolved_containers
-
-        @resolved_containers = containers.collect { |container|
-          OSGi::Container.new(container) 
-        }
-      end
+      @resolved_containers ||= containers.collect { |container| OSGi::Container.new(container) }
       @resolved_containers
     end 
   end

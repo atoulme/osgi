@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require 'buildr4osgi/osgi/version'
 require 'buildr4osgi/osgi/bundle'
 require 'buildr4osgi/osgi/container'
 require 'buildr4osgi/osgi/registry'
