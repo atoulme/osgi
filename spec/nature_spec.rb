@@ -129,4 +129,16 @@ describe Buildr::DefaultNature do
     bar = define('bar', :natures => [:dummy])
     bar.applicable_natures.should include(@dummy)
   end
+  
+  it 'should use the parent natures if no nature is defined on this project' do
+    dummy = @dummy
+    foo = define('foo', :natures => :dummy) do
+      bar = define('bar')
+      bar.applicable_natures.should include(dummy)
+    end
+    foo = define('foo2', :natures => :dummy) do
+      bar = define('bar', :natures => [])
+      bar.applicable_natures.should_not include(dummy)
+    end
+  end
 end
