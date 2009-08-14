@@ -51,4 +51,14 @@ MANIFEST
     @fragment.fragment?.should be_true
   end
   
+  it 'should return nil if no name is given in the manifest' do
+    manifest = <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Version: 3.5.1.R_20090912
+Bundle-ActivationPolicy: Lazy
+MANIFEST
+    OSGi::Bundle.fromManifest(Manifest.read(manifest), ".").should be_nil
+  end
+  
 end
