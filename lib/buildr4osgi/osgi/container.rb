@@ -110,7 +110,7 @@ module OSGi #:nodoc:
         selected = selected.select {|b| b.version == criteria[:version]}
       end
       if (criteria[:exports_package])
-        selected = selected.select {|b| !(b.exported_packages.collect {|package| package.name == criteria[:exports_package] && 
+        selected = selected.select {|b| !(b.exported_packages.select {|package| package.name == criteria[:exports_package] && 
           (criteria[:version].nil? || criteria[:version].in_range(package.version))}.empty?)}
       end
       selected
