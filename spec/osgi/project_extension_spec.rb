@@ -38,23 +38,23 @@ end
 describe OSGi::DependenciesTask do
 
   before :all do
-    FileUtils.rm_rf Dir.pwd + "/tmp/eclipse1"
-    @eclipse_instances = [Dir.pwd + "/tmp/eclipse1"]
+    e1 = createRepository("eclipse1")
+    @eclipse_instances = [e1]
     
-    Buildr::write "tmp/eclipse1/plugins/com.ibm.icu-3.9.9.R_20081204/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e1 + "/plugins/com.ibm.icu-3.9.9.R_20081204/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: com.ibm.icu; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Export-Package: my.package;version="1.0.0"
 MANIFEST
-    Buildr::write "tmp/eclipse1/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e1 + "/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.0.R_20090512
 MANIFEST
-    Buildr::write "tmp/eclipse1/plugins/org.dude-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e1 + "/plugins/org.dude-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.dude; singleton:=true
@@ -166,13 +166,14 @@ MANIFEST
   end
   
   it 'should pick a bundle when several match' do
-    Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    e2 = createRepository("eclipse2")
+    Buildr::write e2 + "/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.0.R_20090512
 MANIFEST
-    Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e2 + "/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
@@ -186,7 +187,7 @@ Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
 MANIFEST
     }
-    foo.osgi.registry.containers = [Dir.pwd + "/tmp/eclipse2"]
+    foo.osgi.registry.containers = [e2]
     foo.dependencies
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
@@ -196,13 +197,14 @@ MANIFEST
   end
   
   it 'should resolve transitively all the jars needed' do
-      Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    e2 = createRepository("eclipse2")
+      Buildr::write e2 + "/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources2; singleton:=true
 Bundle-Version: 3.5.0.R_20090512
 MANIFEST
-      Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+      Buildr::write e2 + "/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Require-Bundle: org.eclipse.core.resources2
@@ -217,7 +219,7 @@ Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
 MANIFEST
       }
-      foo.osgi.registry.containers = [Dir.pwd + "/tmp/eclipse2"]
+      foo.osgi.registry.containers = [e2]
       foo.dependencies
       File.exist?('dependencies.yml').should be_true
       deps = YAML::load(File.read('dependencies.yml'))
@@ -228,10 +230,11 @@ end
 
 describe OSGi::InstallTask do
   before :all do
-    @eclipse_instances = [Dir.pwd + "/tmp/eclipse1"]
-    download = Buildr::download((Dir.pwd + "/tmp/eclipse1/plugins/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar") => "http://www.intalio.org/public/maven2/eclipse/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar")
+    e1 = createRepository("eclipse1")
+    @eclipse_instances = [e1]
+    download = Buildr::download((e1 + "/plugins/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar") => "http://www.intalio.org/public/maven2/eclipse/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar")
     download.invoke
-    Buildr::write "tmp/eclipse1/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e1 + "/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Require-Bundle: org.eclipse.core.resources2

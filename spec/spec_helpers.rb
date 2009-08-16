@@ -25,7 +25,7 @@ unless defined?(SpecHelpers)
 
   module ManageOSGiRepositories
 
-    OSGi_REPOS = File.join(File.dirname(__FILE__), "..", "tmp", "osgi")
+    OSGi_REPOS = File.expand_path File.join(File.dirname(__FILE__), "..", "tmp", "osgi")
 
     def createRepository(name)
       repo = File.join(OSGi_REPOS, name)
@@ -38,7 +38,7 @@ unless defined?(SpecHelpers)
     config.include ManageOSGiRepositories
     
     config.after(:all) {
-      FileUtils.rm_rf OSGi_REPOS
+      FileUtils.rm_rf ManageOSGiRepositories::OSGi_REPOS
     }
   end
 

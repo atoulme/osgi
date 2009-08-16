@@ -18,41 +18,43 @@ require File.join(File.dirname(__FILE__), '../spec_helpers')
 describe OSGi::Container do
 
   before :all do
-    @eclipse_instances = [Dir.pwd + "/tmp/eclipse1", Dir.pwd + "/tmp/eclipse2"]
+    e1= createRepository("eclipse1")
+    e2= createRepository("eclipse2")
+    @eclipse_instances = [e1, e2]
     
-    Buildr::write "tmp/eclipse1/plugins/com.ibm.icu-3.9.9.R_20081204/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e1 + "/plugins/com.ibm.icu-3.9.9.R_20081204/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: com.ibm.icu; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 MANIFEST
-    Buildr::write "tmp/eclipse1/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e1 + "/plugins/org.eclipse.core.resources-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.0.R_20090512
 MANIFEST
-    Buildr::write "tmp/eclipse1/plugins/org.fragments-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e1 + "/plugins/org.fragments-3.5.0.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.fragment; singleton:=true
 Fragment-Host: org.eclipse.core.resources
 Bundle-Version: 3.5.0.R_20090512
 MANIFEST
-    Buildr::write "tmp/eclipse2/plugins/org.eclipse.core.resources-3.5.1.R_20090912/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e2 + "/plugins/org.eclipse.core.resources-3.5.1.R_20090912/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.1.R_20090912
 MANIFEST
-    Buildr::write "tmp/eclipse2/plugins/org.eclipse.ui-3.4.2.R_20090226/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e2 + "/plugins/org.eclipse.ui-3.4.2.R_20090226/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.ui; singleton:=true
 Bundle-Version: 3.4.2.R_20090226
 MANIFEST
   
-    Buildr::write "tmp/eclipse2/plugins/org.eclipse.ui-3.5.0.M_20090107/META-INF/MANIFEST.MF", <<-MANIFEST
+    Buildr::write e2 + "/plugins/org.eclipse.ui-3.5.0.M_20090107/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.ui; singleton:=true
