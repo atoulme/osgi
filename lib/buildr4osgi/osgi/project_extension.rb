@@ -174,7 +174,7 @@ module OSGi
       task('osgi:resolve:dependencies').enhance(&block).invoke if !(File.exists?("dependencies.yml"))
       dependencies =YAML.load(File.read("dependencies.yml"))
       names = [project.name] + project.projects.collect {|p| p.name}
-      return dependencies.inject([]) {|array, (key, value)| array + value if names.include? key}
+      return dependencies.collect {|key, value| value if names.include? key}.flatten.compact.uniq
     end
 
     class OSGi #:nodoc:
