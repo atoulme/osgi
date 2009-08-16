@@ -13,11 +13,33 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require File.join(File.dirname(__FILE__), "/../buildr/spec/spec_helpers.rb")
+unless defined?(SpecHelpers)
+  require File.join(File.dirname(__FILE__), "/../buildr/spec/spec_helpers.rb")
 
-# Make sure to load from these paths first, we don't want to load any
-# code from Gem library.
-$LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
-require 'buildr4osgi'
+  # Make sure to load from these paths first, we don't want to load any
+  # code from Gem library.
+  $LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
+  require 'buildr4osgi'
 
-DEFAULT = Buildr::Nature::Registry.all unless defined?(DEFAULT)
+  DEFAULT = Buildr::Nature::Registry.all unless defined?(DEFAULT)
+
+  module ManageOSGiRepositories
+
+    OSGi_REPOS = File.join(File.dirname(__FILE__), "..", "tmp", "osgi")
+
+    def createRepository(name)
+      repo = File.join(OSGi_REPOS, name)
+      mkpath repo
+      return repo
+    end
+  end
+  
+  Spec::Runner.configure do |config|
+    config.include ManageOSGiRepositories
+    
+    config.after(:all) {
+      FileUtils.rm_rf OSGi_REPOS
+    }
+  end
+
+end

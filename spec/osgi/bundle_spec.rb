@@ -62,3 +62,37 @@ MANIFEST
   end
   
 end
+
+describe "fragments" do
+  before :all do
+    manifest = <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.1.R_20090912
+Bundle-ActivationPolicy: Lazy
+MANIFEST
+    manifest2 = <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources.x86; singleton:=true
+Bundle-Version: 3.5.1.R_20090912
+Bundle-ActivationPolicy: Lazy
+Fragment-Host: org.eclipse.core.resources
+MANIFEST
+    @eclipse_instances = [createRepository("eclipse1")]
+    Buildr::write File.join(@eclipse_instances.first, "plugins", "org.eclipse.core.resources-3.5.1.R_20090512", "META-INF", "MANIFEST.MF"), manifest
+    Buildr::write File.join(@eclipse_instances.first, "plugins", "org.eclipse.core.resources.x86-3.5.1.R_20090512", "META-INF", "MANIFEST.MF"), manifest2
+    @bundle = OSGi::Bundle.fromManifest(Manifest.read(manifest), ".")
+    @fragment = OSGi::Bundle.fromManifest(Manifest.read(manifest2), ".")
+  end
+    
+  
+  it "should find the bundle fragments" do
+    foo = define("foo")
+    foo.osgi.registry.containers = @eclipse_instances.dup
+    
+    @bundle.fragments(foo).should == [@fragment]
+  end
+  
+end

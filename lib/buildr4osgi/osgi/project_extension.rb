@@ -93,10 +93,8 @@ module OSGi
         project.projects.each do |subp|
           dependencies |= collect(subp)
         end
-
         dependencies |= collect(project)
-        
-        dependencies.sort.each {|bundle|
+        dependencies.flatten.uniq.sort.each {|bundle|
           begin
             if File.directory?(bundle.file)
               begin
@@ -112,25 +110,25 @@ module OSGi
                 
               rescue Exception => e
                 error e.message
-                error e.backtrace.join("\n")
+                trace e.backtrace.join("\n")
               end
               
             end
-            artifact = Buildr::artifact(bundle.to_s)
+            
             if local
+              artifact = Buildr::artifact(bundle.to_s)
               installed = Buildr.repositories.locate(artifact)
               mkpath File.dirname(installed)
-              cp bundle.file, installed
+              Buildr::artifact(bundle.to_s).from(bundle.file).install
               info "Installed #{installed}"
             else
-              task = Buildr::upload Buildr::artifact(bundle.to_s).from(bundle.file)
-              task.invoke
+              Buildr::artifact(bundle.to_s).from(bundle.file).upload
               info "Uploaded #{bundle}"
             end
           rescue Exception => e
             error "Error installing the artifact #{bundle.to_s}"
-            #print e.message
-            #print e.backtrace.join("\n")
+            trace e.message
+            trace e.backtrace.join("\n")
           end
         }
       end
@@ -173,7 +171,10 @@ module OSGi
     # It will compute the dependencies of the project and place them in dependencies.yml
     #
     def dependencies(&block)
-      task('osgi:resolve:dependencies').enhance &block
+      task('osgi:resolve:dependencies').enhance(&block).invoke if !(File.exists?("dependencies.yml"))
+      dependencies =YAML.load(File.read("dependencies.yml"))
+      names = [project.name] + project.projects.collect {|p| p.name}
+      return dependencies.inject([]) {|array, (key, value)| array + value if names.include? key}
     end
 
     class OSGi #:nodoc:

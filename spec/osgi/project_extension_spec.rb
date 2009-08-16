@@ -17,8 +17,8 @@ require File.join(File.dirname(__FILE__), '../spec_helpers')
 
 describe OSGi::ProjectExtension do
   
-  it 'should add a new task to projects' do
-    define('foo').dependencies.should be_instance_of(OSGi::DependenciesTask)
+  it 'should give a way to take project dependencies' do
+    define('foo').dependencies.should be_instance_of(Array)
   end
   
   it 'should add a new osgi method to projects' do
@@ -27,7 +27,7 @@ describe OSGi::ProjectExtension do
   
   it 'should give a handle over the OSGi containers registry' do
     define('foo').osgi.registry.should be_instance_of(OSGi::Registry)
-  end 
+  end
   
   it 'should give options to resolve bundle dependencies' do
     pending
@@ -139,7 +139,7 @@ Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude;bundle-versi
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
-    foo.dependencies.invoke
+    foo.dependencies
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["foo"].size.should == 2
@@ -157,7 +157,7 @@ Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
-    foo.dependencies.invoke
+    foo.dependencies
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["foo"].size.should == 2 # there should be 2 dependencies
@@ -187,7 +187,7 @@ Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
 MANIFEST
     }
     foo.osgi.registry.containers = [Dir.pwd + "/tmp/eclipse2"]
-    foo.dependencies.invoke
+    foo.dependencies
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["foo"].size.should == 1
@@ -218,7 +218,7 @@ Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
 MANIFEST
       }
       foo.osgi.registry.containers = [Dir.pwd + "/tmp/eclipse2"]
-      foo.dependencies.invoke
+      foo.dependencies
       File.exist?('dependencies.yml').should be_true
       deps = YAML::load(File.read('dependencies.yml'))
       deps["foo"].size.should == 2
@@ -250,9 +250,8 @@ Require-Bundle: org.eclipse.debug.ui
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
-    foo.task('osgi:resolve:dependencies').invoke
+    foo.dependencies
     foo.task('osgi:install:dependencies').invoke
-    
     File.exist?(artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").to_s).should be_true
     
   end
@@ -280,7 +279,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
-Require-Bundle: org.eclipse.debug.ui
+Require-Bundle: org.eclipse.debug.ui,org.eclipse.core.resources
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
@@ -291,8 +290,15 @@ MANIFEST
       with(URI.parse('sftp://example.com/base/osgi/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar'), 
       artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").to_s, anything)
     URI.should_receive(:upload).once.
-           with(URI.parse('sftp://example.com/base/osgi/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.pom'), 
-           artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").pom.to_s, anything)
+      with(URI.parse('sftp://example.com/base/osgi/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.pom'), 
+      artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").pom.to_s, anything)
+    URI.should_receive(:upload).once.
+           with(URI.parse('sftp://example.com/base/osgi/org.eclipse.core.resources/3.5.1.R_20090512/org.eclipse.core.resources-3.5.1.R_20090512.pom'), 
+           artifact("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090512").pom.to_s, anything)
+    URI.should_receive(:upload).once.
+           with(URI.parse('sftp://example.com/base/osgi/org.eclipse.core.resources/3.5.1.R_20090512/org.eclipse.core.resources-3.5.1.R_20090512.jar'), 
+           artifact("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090512").to_s, anything)
+    
     foo.task('osgi:upload:dependencies').invoke
     
     
