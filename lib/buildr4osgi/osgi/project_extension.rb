@@ -167,8 +167,8 @@ module OSGi
     end
 
     #
-    # Calls the osgi:resolve:dependencies task
-    # It will compute the dependencies of the project and place them in dependencies.yml
+    # Calls the osgi:resolve:dependencies task if no dependencies.yml file is present.
+    # Then reads the dependencies from dependencies.yml
     #
     def dependencies(&block)
       task('osgi:resolve:dependencies').enhance(&block).invoke if !(File.exists?("dependencies.yml"))
