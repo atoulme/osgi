@@ -15,3 +15,6 @@
 
 require 'buildr4osgi/nature'
 require 'buildr4osgi/osgi'
+
+# Make the library_project method available.
+class << self ; include OSGi::BuildLibraries ; end
