@@ -232,8 +232,10 @@ describe OSGi::InstallTask do
   before :all do
     e1 = createRepository("eclipse1")
     @eclipse_instances = [e1]
-    download = Buildr::download((e1 + "/plugins/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar") => "http://www.intalio.org/public/maven2/eclipse/org.eclipse.debug.ui/3.4.1.v20080811_r341/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar")
-    download.invoke
+    mkpath e1 + "/plugins"
+    debug_ui = artifact("eclipse:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341")
+    debug_ui.invoke # download it from our fake remote repository
+    cp debug_ui.to_s, (e1 + "/plugins/org.eclipse.debug.ui-3.4.1.v20080811_r341.jar")
     Buildr::write e1 + "/plugins/org.eclipse.core.resources-3.5.1.R_20090512/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2

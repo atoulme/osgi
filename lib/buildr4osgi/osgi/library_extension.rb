@@ -13,10 +13,18 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-module OSGi
-  module BuildLibraries
+module OSGi #:nodoc:
+  module BuildLibraries #:nodoc:
+    
+    # A small extension contributed to projects that are library projects
+    # so we can walk the libraries we pass to them.
+    #
     module LibraryWalker
       include Extension
+      
+      #
+      # Walks the libraries passed in parameter, passing each library to the block.
+      #
       def walk_libs(lib, &block)
         if (lib.is_a?(Struct) || lib.is_a?(Array))
           lib.each {|structdep|
@@ -31,7 +39,7 @@ module OSGi
           raise "Don't know how to interpret lib #{lib}"
         end
         block.call(lib_artifact)
-     end
+      end
       module_function :walk_libs
     end
 

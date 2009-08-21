@@ -49,4 +49,15 @@ describe 'Buildr::OSGiNature' do
     bar.applicable_natures.should_not include(osgi)
   end
   
+  it 'should write the right .project file' do
+    pending "waiting for the fix for BUILDR-300"
+    foo = define('foo') do
+      Buildr::write "plugin.xml", ""
+      Buildr::write "src/main/java/Hello.java", "public class Hello{}"
+    end
+    foo.task("eclipse").invoke
+    (File.exists? ".project").should be_true
+    File.read(".project").should match(/org.eclipse.pde.PluginNature/)
+  end
+  
 end

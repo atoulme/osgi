@@ -14,12 +14,24 @@
 # the License.
 
 unless defined?(SpecHelpers)
+  
+  
+  
   require File.join(File.dirname(__FILE__), "/../buildr/spec/spec_helpers.rb")
-
+  fake_local = repositories.local
+  helper_libs_repository = File.join(File.dirname(__FILE__), "tmp", "remote")
+  repositories.local = helper_libs_repository
+  debug_ui = artifact("eclipse:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341")
+  repositories.remote << "http://www.intalio.org/public/maven2"
+  debug_ui.invoke # download it once!
+  repositories.local = fake_local
+  repositories.remote << helper_libs_repository
   # Make sure to load from these paths first, we don't want to load any
   # code from Gem library.
   $LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
   require 'buildr4osgi'
+  #Change the local Maven repository so that it isn't deleted everytime:
+  
 
   DEFAULT = Buildr::Nature::Registry.all unless defined?(DEFAULT)
 
