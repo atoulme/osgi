@@ -14,18 +14,24 @@
 # the License.
 
 unless defined?(SpecHelpers)
-  
-  
-  
   require File.join(File.dirname(__FILE__), "/../buildr/spec/spec_helpers.rb")
+  
+  
   fake_local = repositories.local
-  helper_libs_repository = File.join(File.dirname(__FILE__), "tmp", "remote")
-  repositories.local = helper_libs_repository
-  debug_ui = artifact("eclipse:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341")
+  HELPERS_REPOSITORY = File.expand_path(File.join(File.dirname(__FILE__), "tmp", "remote"))
+  repositories.local = HELPERS_REPOSITORY
+  DEBUG_UI = "eclipse:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341"
+  SLF4J = group(%w{ slf4j-api slf4j-log4j12 jcl104-over-slf4j }, :under=>"org.slf4j", :version=>"1.5.8")
   repositories.remote << "http://www.intalio.org/public/maven2"
-  debug_ui.invoke # download it once!
+  artifact(DEBUG_UI).invoke # download it once!
+  for lib in SLF4J do
+    artifact(lib).invoke
+    artifact(artifact(lib).to_hash.merge(:classifier => "sources")).invoke
+  end
   repositories.local = fake_local
-  repositories.remote << helper_libs_repository
+  
+  
+  
   # Make sure to load from these paths first, we don't want to load any
   # code from Gem library.
   $LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
@@ -35,7 +41,7 @@ unless defined?(SpecHelpers)
 
   DEFAULT = Buildr::Nature::Registry.all unless defined?(DEFAULT)
 
-  module ManageOSGiRepositories
+  module Buildr4OSGi::SpecHelpers
 
     OSGi_REPOS = File.expand_path File.join(File.dirname(__FILE__), "..", "tmp", "osgi")
 
@@ -44,13 +50,22 @@ unless defined?(SpecHelpers)
       mkpath repo
       return repo
     end
+    
+    def remoteRepositoryForHelpers()
+      repositories.remote << "file://#{HELPERS_REPOSITORY}"
+    end
+    
+    
   end
   
   Spec::Runner.configure do |config|
-    config.include ManageOSGiRepositories
+    config.include Buildr4OSGi::SpecHelpers, Buildr4OSGi
     
+    config.before(:each) {
+      remoteRepositoryForHelpers()
+    }
     config.after(:all) {
-      FileUtils.rm_rf ManageOSGiRepositories::OSGi_REPOS
+      FileUtils.rm_rf Buildr4OSGi::SpecHelpers::OSGi_REPOS
     }
   end
 

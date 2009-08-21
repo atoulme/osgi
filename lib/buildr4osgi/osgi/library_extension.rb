@@ -48,9 +48,9 @@ module OSGi #:nodoc:
     # Defines a project as the merge of the dependencies.
     # group: the group of the project to define
     # name: the name of the project to define
-    # version: the version of the project to define (defaults on VERSION_NUMBER)
+    # version: the version of the project to define
     #
-    def library_project(dependencies, group, name, version = VERSION_NUMBER)
+    def library_project(dependencies, group, name, version, options = {:exclude => ["META-INF/*"], :include => []})
       deps_as_str = []
       LibraryWalker::walk_libs(dependencies) {|lib|
         deps_as_str << lib.to_spec
@@ -63,38 +63,40 @@ module OSGi #:nodoc:
           project.version = "#{version}"
           project.group = "#{group}"
 
-          package(:jar).enhance {|task|
-            walk_libs(#{deps_as_str}) {|lib|
-            lib.invoke # make sure the artifact is present.
-            task.merge(lib).exclude("META-INF/*").exclude("*.java")
+          package(:jar).tap {|jar|
+            jar.enhance {|task|
+              walk_libs(#{deps_as_str}) {|lib|
+                lib.invoke # make sure the artifact is present.
+                task.merge(lib).exclude("*.java")#{options[:exclude].collect {|exclusion| ".exclude(#{exclusion.inspect})"}.join if options[:exclude]}#{options[:include].collect {|inclusion| ".include(#{inclusion.inspect})"}.join if options[:include]}
+              }
             }
-          }
-
-          package(:jar).tap {|task| 
             entries = []
             names = []
             walk_libs(#{deps_as_str}) {|lib|
               names << lib.to_spec 
               lib.invoke # make sure the artifact is present.
-              Zip::ZipFile.foreach(lib.to_s) {|entry| entries << entry.to_s.sub(/(.*)\\/.*\.class$/, '\1').gsub(/\\//, '.') if /.*\.class$/.match(entry.to_s)}
+              Zip::ZipFile.foreach(lib.to_s) {|entry| entries << entry.name.sub(/(.*)\\/.*.class$/, '\\1').gsub(/\\//, '.') if /.*\\.class$/.match(entry.name)}
             }
-            task.with :manifest => { "Export-Package" => entries.uniq.sort.join(","),
-              "Bundle-Version" => VERSION_NUMBER,
+            jar.with :manifest => { 
+              "Export-Package" => entries.uniq.sort.join(","),
+              "Bundle-Version" => "#{version}",
               "Bundle-SymbolicName" => project.name,
               "Bundle-Name" => names.join(", "),
               "Bundle-Vendor" => "Intalio, Inc."
             }
+            
+            
           }
           sources_id = "\#\{id\}-sources-\#\{project.version\}"
-          package(:zip, :file => _("target/\#\{sources_id\}.zip")).enhance do |task|
+          package(:sources).tap do |task|
             walk_libs(#{deps_as_str}) {|lib|
-              lib_src = Buildr::artifact(lib.to_hash.merge(:classifier => "sources", :type => "zip"))
+              lib_src = Buildr::artifact(lib.to_hash.merge(:classifier => "sources"))
               begin
                 lib_src.invoke # make sure the artifact is present.
                 task.merge(lib_src).exclude("META-INF/*")
               rescue Exception => e
+                warn "Could not find sources for \#\{lib.to_spec\}"
                 trace e.message
-                warn "Could not find sources for \#\{lib\}"
               end
             }
           end
@@ -102,5 +104,9 @@ module OSGi #:nodoc:
       }
     end
   end
+end
+
+module Buildr4OSGi
+  include OSGi::BuildLibraries
 end
 

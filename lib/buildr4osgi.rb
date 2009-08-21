@@ -16,5 +16,14 @@
 require 'buildr4osgi/nature'
 require 'buildr4osgi/osgi'
 
-# Make the library_project method available.
-class << self ; include OSGi::BuildLibraries ; end
+# Methods defined in Buildr4OSGi are both instance methods (e.g. when included in Project)
+# and class methods when invoked like Buildr4OSGi.project_library(SLF4J, "group", "foo", "1.0.0").
+module Buildr4OSGi ; extend self ; end
+# The Buildfile object (self) has access to all the Buildr4OSGi methods and constants.
+class << self ; include Buildr4OSGi ; end
+class Object #:nodoc:
+  Buildr4OSGi.constants.each do |name|
+    const = Buildr4OSGi.const_get(name)
+    const_set name, const if const.is_a?(Module)
+  end
+end
