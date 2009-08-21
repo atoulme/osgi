@@ -14,7 +14,10 @@
 # the License.
 
 module OSGi #:nodoc:
-  module BuildLibraries #:nodoc:
+  
+  # A module dedicated to building jars into OSGi bundles to serve as libraries.
+  #
+  module BuildLibraries
     
     # A small extension contributed to projects that are library projects
     # so we can walk the libraries we pass to them.
@@ -50,12 +53,16 @@ module OSGi #:nodoc:
     # name: the name of the project to define
     # version: the version of the project to define
     #
-    def library_project(dependencies, group, name, version, options = {:exclude => ["META-INF/*"], :include => []})
+    def library_project(dependencies, group, name, version, options = {:exclude => ["META-INF/MANIFEST.MF"], :include => []})
       deps_as_str = []
       LibraryWalker::walk_libs(dependencies) {|lib|
         deps_as_str << lib.to_spec
       }
       deps_as_str = deps_as_str.flatten.inspect
+      exclusion = options[:exclude].collect {|exclusion| ".exclude(#{exclusion.inspect})"}.join if options[:exclude]
+      inclusion = options[:include].collect {|inclusion| ".include(#{inclusion.inspect})"}.join if options[:include]
+      exclusion ||= ""
+      inclusion ||= ""
       Object.class_eval %{
         desc "#{name}"
         Buildr::define "#{name}" do
@@ -67,7 +74,7 @@ module OSGi #:nodoc:
             jar.enhance {|task|
               walk_libs(#{deps_as_str}) {|lib|
                 lib.invoke # make sure the artifact is present.
-                task.merge(lib).exclude("*.java")#{options[:exclude].collect {|exclusion| ".exclude(#{exclusion.inspect})"}.join if options[:exclude]}#{options[:include].collect {|inclusion| ".include(#{inclusion.inspect})"}.join if options[:include]}
+                task.merge(lib)#{exclusion}#{inclusion}
               }
             }
             entries = []
@@ -93,7 +100,7 @@ module OSGi #:nodoc:
               lib_src = Buildr::artifact(lib.to_hash.merge(:classifier => "sources"))
               begin
                 lib_src.invoke # make sure the artifact is present.
-                task.merge(lib_src).exclude("META-INF/*")
+                task.merge(lib_src)#{exclusion}#{inclusion}
               rescue Exception => e
                 warn "Could not find sources for \#\{lib.to_spec\}"
                 trace e.message

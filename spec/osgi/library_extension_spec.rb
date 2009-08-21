@@ -24,7 +24,7 @@ describe OSGi::BuildLibraries do
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
-      zip.entries.size.should == 34
+      zip.entries.size.should == 45
       zip.find_entry("org/slf4j/Marker.class").should_not be_nil  
     }
   end
