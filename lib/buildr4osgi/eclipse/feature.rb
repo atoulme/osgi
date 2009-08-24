@@ -137,7 +137,7 @@ PROPERTIES
         :update_sites => update_sites.collect {|site| site[:name]}, 
         :discovery_sites => discovery_sites.collect {|site| site[:name]}))
       end
-      path('eclipse/features').include File.join(project.base_dir, 'target/feature.xml'), 
+      path("eclipse/features/#{project.id}_#{project.version}").include File.join(project.base_dir, 'target/feature.xml'), 
         File.join(project.base_dir, 'target/feature.properties')
       unless @plugins.nil? || @plugins.empty?
         

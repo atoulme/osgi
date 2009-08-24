@@ -137,8 +137,8 @@ describe Buildr4OSGi::FeatureTask, " when running" do
     feature_file = File.join(@foo.base_dir, "target", "foo-1.0.0-feature.jar")
     File.exists?(feature_file).should be_true
     Zip::ZipFile.open(feature_file) do |zip|
-      zip.find_entry("eclipse/features/feature.xml").should_not be_nil
-      zip.find_entry("eclipse/features/feature.properties").should_not be_nil
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.properties").should_not be_nil
       zip.find_entry("eclipse/plugins/org.eclipse.debug.ui_3.4.1.v20080811_r341.jar").should_not be_nil
     end
   end
@@ -170,8 +170,8 @@ describe Buildr4OSGi::FeatureTask, " package subprojects" do
     feature_file = File.join(@foo.base_dir, "target", "foo-1.0.0-feature.jar")
     File.exists?(feature_file).should be_true
     Zip::ZipFile.open(feature_file) do |zip|
-      zip.find_entry("eclipse/features/feature.xml").should_not be_nil
-      zip.find_entry("eclipse/features/feature.properties").should_not be_nil
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.properties").should_not be_nil
       zip.find_entry("eclipse/plugins/bar_1.0.0.jar").should_not be_nil
       zip.find_entry("eclipse/plugins/bar_1.0.0.jar").directory?.should be_false
     end
