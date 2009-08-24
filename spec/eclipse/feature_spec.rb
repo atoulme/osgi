@@ -144,3 +144,36 @@ describe Buildr4OSGi::FeatureTask, " when running" do
   end
   
 end
+
+describe Buildr4OSGi::FeatureTask, " package subprojects" do
+  
+  before do
+    @bar = define("bar", :version => "1.0.0")
+    @foo = define("foo", :version => "1.0.0")
+    f = @foo.package(:feature)
+    f.plugins << @bar
+    f.label = "My feature"
+    f.provider = "Acme Inc"
+    f.description = "The best feature ever"
+    f.changesURL = "http://example.com/changes"
+    f.license = "The license is too long to explain"
+    f.licenseURL = "http://example.com/license"
+    f.branding_plugin = "com.musal.ui"
+    f.update_sites << {:url => "http://example.com/update", :name => "My update site"}
+    f.discovery_sites = [{:url => "http://example.com/update2", :name => "My update site2"}, 
+      {:url => "http://example.com/upup", :name => "My update site in case"}]
+  end
+  
+  it "should create a jar file with the subproject packaged as a jar inside it" do
+    @bar.package(:jar).invoke
+    @foo.package(:feature).invoke
+    feature_file = File.join(@foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    File.exists?(feature_file).should be_true
+    Zip::ZipFile.open(feature_file) do |zip|
+      zip.find_entry("eclipse/features/feature.xml").should_not be_nil
+      zip.find_entry("eclipse/features/feature.properties").should_not be_nil
+      zip.find_entry("eclipse/plugins/bar_1.0.0.jar").should_not be_nil
+    end
+  end
+  
+end

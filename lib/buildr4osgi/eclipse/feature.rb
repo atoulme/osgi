@@ -151,8 +151,15 @@ PROPERTIES
     protected
     
     def adaptPlugin(plugin)
-      size = File.size(Buildr::artifact(plugin).to_s)
-      Buildr::artifact(plugin).to_hash.merge(:"download-size" => size, :"install-size" => size, :unpack => false)
+      plugin = Buildr::artifact(plugin) if plugin.is_a?(String)
+      if plugin.is_a? Buildr::Project
+        size = File.size(plugin.package(:jar).to_s)
+        return {:id => plugin.id, :group => plugin.group, :version => plugin.version, 
+          :"download-size" => size, :"install-size" => size, :unpack => false}
+      else
+        size = File.size(plugin.to_s)
+        return plugin.to_hash.merge(:"download-size" => size, :"install-size" => size, :unpack => false)
+      end
     end
   end
 
