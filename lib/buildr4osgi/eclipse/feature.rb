@@ -142,7 +142,7 @@ PROPERTIES
       unless @plugins.nil? || @plugins.empty?
         
         Buildr.artifacts(plugins).each do |plugin|
-          path("eclipse/plugins/#{plugin.id}_#{plugin.version}.jar").include(plugin)
+          include(plugin, :as => "eclipse/plugins/#{plugin.id}_#{plugin.version}.jar")
           
         end
       end

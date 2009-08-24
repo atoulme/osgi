@@ -173,6 +173,7 @@ describe Buildr4OSGi::FeatureTask, " package subprojects" do
       zip.find_entry("eclipse/features/feature.xml").should_not be_nil
       zip.find_entry("eclipse/features/feature.properties").should_not be_nil
       zip.find_entry("eclipse/plugins/bar_1.0.0.jar").should_not be_nil
+      zip.find_entry("eclipse/plugins/bar_1.0.0.jar").directory?.should be_false
     end
   end
   
