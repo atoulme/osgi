@@ -13,4 +13,5 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require 'buildr4osgi/eclipse/plugin'
 require 'buildr4osgi/eclipse/feature'
