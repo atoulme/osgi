@@ -79,6 +79,10 @@ describe OSGi::Version do
   it 'should compare with nil' do
     (OSGi::Version.new('1.0.0') <=> nil).should eql(1)
   end
+  
+  it 'should find if two versions are equal' do
+    (OSGi::Version.new('1.0.0.001-March') <=> "1.0.0.001-March").should == 0
+  end
 end
 
 describe OSGi::VersionRange do

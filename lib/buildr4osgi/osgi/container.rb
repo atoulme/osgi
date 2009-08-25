@@ -14,11 +14,6 @@
 # the License.
 
 require "manifest"
-# We will be messing up with .jar files that we will treat just like zip files.
-unless (defined?(Zip::ZipFile))
-  require "zip/zip"
-  require "zip/zipfilesystem"
-end
 
 module OSGi #:nodoc:
   

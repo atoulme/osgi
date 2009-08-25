@@ -35,9 +35,9 @@ PLUGIN_XML
 marker=Hello marker
 PLUGIN_PROPERTIES
     Buildr::write "src/main/java/Main.java", "public class Main { public static void main(String[] args) {}}"
-    @foo = define("foo", :version => "1.0.0.001")
-    @foo.package(:plugin).invoke
-    @path = @foo.package(:plugin).to_s
+    @plugin = define("plugin", :version => "1.0.0.001")
+    @plugin.package(:plugin).invoke
+    @path = @plugin.package(:plugin).to_s
     
   end
   
@@ -63,7 +63,7 @@ PLUGIN_PROPERTIES
       zip.find_entry("META-INF/MANIFEST.MF").should_not be_nil
       bundle = OSGi::Bundle.fromManifest(Manifest.read(zip.read("META-INF/MANIFEST.MF")), @path)
       bundle.should_not be_nil
-      bundle.name.should == "foo" 
+      bundle.name.should == "plugin" 
       bundle.version.should == "1.0.0.001"
     end
   end

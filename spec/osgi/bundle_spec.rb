@@ -47,6 +47,10 @@ MANIFEST
     @bundle.to_s.should eql("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090912")
   end
   
+  it 'should compare with its artifact definition' do
+    (@bundle <=> "osgi:org.eclipse.core.resources:jar:3.5.1.R_20090912").should == 0
+  end
+  
   it 'should recognize itself as a fragment' do
     @fragment.fragment?.should be_true
   end

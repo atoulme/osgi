@@ -160,10 +160,10 @@ PROPERTIES
       version = nil
       group = nil
       if plugin.is_a? Buildr::Project
-        plugin.package(:jar).invoke #make sure it is present.
-        size = File.size(plugin.package(:jar).to_s)
-        name = plugin.package(:jar).manifest.main["Bundle-SymbolicName"]
-        version = plugin.package(:jar).manifest.main["Bundle-Version"]
+        plugin.package(:plugin).invoke #make sure it is present.
+        size = File.size(plugin.package(:plugin).to_s)
+        name = plugin.package(:plugin).manifest.main["Bundle-SymbolicName"]
+        version = plugin.package(:plugin).manifest.main["Bundle-Version"]
         group = plugin.group   
       else
         plugin.invoke
