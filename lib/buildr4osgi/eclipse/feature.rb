@@ -120,8 +120,14 @@ PROPERTIES
     
     def generateFeature(project)
       mkpath File.join(project.base_dir, 'target')
+      resolved_plugins = {}
+      unless @plugins.nil? || @plugins.empty?
+        Buildr.artifacts(plugins).flatten.each do |plugin|
+          resolved_plugins[adaptPlugin(plugin)] = plugin
+        end
+      end
       File.open(File.join(project.base_dir, 'target', 'feature.xml'), 'w') do |f|
-        f.write(writeFeatureXml(plugins.collect {|p| adaptPlugin(p)}, :id => project.id, :version => project.version, 
+        f.write(writeFeatureXml(resolved_plugins.keys, :id => project.id, :version => project.version, 
         :branding_plugin => branding_plugin, 
         :copyright => copyright, 
         :update_sites => update_sites.collect {|site| site[:url]}, 
@@ -139,27 +145,52 @@ PROPERTIES
       end
       path("eclipse/features/#{project.id}_#{project.version}").include File.join(project.base_dir, 'target/feature.xml'), 
         File.join(project.base_dir, 'target/feature.properties')
-      unless @plugins.nil? || @plugins.empty?
-        
-        Buildr.artifacts(plugins).each do |plugin|
-          include(plugin, :as => "eclipse/plugins/#{plugin.id}_#{plugin.version}.jar")
-          
-        end
+      resolved_plugins.each_pair do |info, plugin|  
+        include(plugin, :as => "eclipse/plugins/#{info[:id]}_#{info[:version]}.jar")
       end
     end
     
     protected
     
     def adaptPlugin(plugin)
+      
       plugin = Buildr::artifact(plugin) if plugin.is_a?(String)
+      name = nil
+      size = nil
+      version = nil
+      group = nil
       if plugin.is_a? Buildr::Project
+        plugin.package(:jar).invoke #make sure it is present.
         size = File.size(plugin.package(:jar).to_s)
-        return {:id => plugin.id, :group => plugin.group, :version => plugin.version, 
-          :"download-size" => size, :"install-size" => size, :unpack => false}
+        name = plugin.package(:jar).manifest.main["Bundle-SymbolicName"]
+        version = plugin.package(:jar).manifest.main["Bundle-Version"]
+        group = plugin.group   
       else
+        plugin.invoke
+        Zip::ZipFile.open(plugin.to_s) do |zip|
+          entry = zip.find_entry("META-INF/MANIFEST.MF")
+          unless entry.nil?
+            manifest = Manifest.read(zip.read("META-INF/MANIFEST.MF"))
+            bundle = ::OSGi::Bundle.fromManifest(manifest, plugin.to_s)
+            unless bundle.nil?
+              name = bundle.name
+              version = bundle.version
+            end
+          end
+        end
+        group = plugin.to_hash[:group]
         size = File.size(plugin.to_s)
-        return plugin.to_hash.merge(:"download-size" => size, :"install-size" => size, :unpack => false)
       end
+      if (name.nil? || version.nil?)
+        raise "The dependency #{plugin} is not an Eclipse plugin: make sure the headers " +
+          "Bundle-SymbolicName and Bundle-Version are present in the manifest" 
+      end
+      if size.nil?
+        warn "Could not determine the size of #{plugin}"
+        size ||= 0
+      end
+      return {:id => name, :group => group, :version => version, 
+        :"download-size" => size, :"install-size" => size, :unpack => false}
     end
   end
 

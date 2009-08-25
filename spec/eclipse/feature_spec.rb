@@ -148,10 +148,14 @@ end
 describe Buildr4OSGi::FeatureTask, " package subprojects" do
   
   before do
-    @bar = define("bar", :version => "1.0.0")
+    @container = define("container") do
+      @bar = define("bar", :version => "1.0.0") do
+        package(:jar).with :manifest => {"Bundle-SymbolicName" => "bar", "Bundle-Version" => "1.0.0"}
+      end
+    end
     @foo = define("foo", :version => "1.0.0")
     f = @foo.package(:feature)
-    f.plugins << @bar
+    f.plugins << project("container:bar")
     f.label = "My feature"
     f.provider = "Acme Inc"
     f.description = "The best feature ever"
@@ -165,7 +169,6 @@ describe Buildr4OSGi::FeatureTask, " package subprojects" do
   end
   
   it "should create a jar file with the subproject packaged as a jar inside it" do
-    @bar.package(:jar).invoke
     @foo.package(:feature).invoke
     feature_file = File.join(@foo.base_dir, "target", "foo-1.0.0-feature.jar")
     File.exists?(feature_file).should be_true
@@ -177,4 +180,10 @@ describe Buildr4OSGi::FeatureTask, " package subprojects" do
     end
   end
   
+  it 'should complain if one of the dependencies is not a plugin' do
+    @foo.package(:feature).plugins << SLF4J
+    lambda { @foo.package(:feature).invoke}.should raise_error(
+    /The dependency .* is not an Eclipse plugin: make sure the headers Bundle-SymbolicName and Bundle-Version are present in the manifest/)
+  
+  end
 end
