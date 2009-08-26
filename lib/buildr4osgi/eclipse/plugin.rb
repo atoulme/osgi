@@ -20,8 +20,17 @@ module Buildr4OSGi
     def initialize(*args) #:nodoc:
       super
       prepare do
-        include("plugin.xml")
-        include("plugin.properties")
+        includeOrWarn(".", "plugin.xml")
+        includeOrWarn(".", "plugin.properties")
+      end
+    
+    end
+    
+    def includeOrWarn(include_path, file_name)
+      if File.exists?(file_name)
+        path(include_path).include(file_name)
+      else
+        warn("#{file_name} is missing. Please add it to your project.")
       end
     end
     
@@ -34,14 +43,19 @@ module Buildr4OSGi
     
     def package_as_plugin(file_name)
       task = PluginTask.define_task(file_name).tap do |plugin|
-        plugin.with :manifest=> {"Bundle-SymbolicName" => project.id, "Bundle-Version" => project.version }.merge(manifest), 
-          :meta_inf=>meta_inf
+        plugin.with :manifest=> manifest, :meta_inf=>meta_inf
         plugin.with [compile.target, resources.target].compact
       end
     end
     
     def package_as_plugin_spec(spec) #:nodoc:
       spec.merge(:type=>:jar)
+    end
+    
+    before_define do |project|
+      project.manifest = {"Bundle-Version" => project.version, 
+                          "Bundle-SymbolicName" => project.id, 
+                          "Bundle-Name" => project.comment || project.name}.merge(project.manifest)
     end
     
   end
