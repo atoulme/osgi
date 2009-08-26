@@ -17,18 +17,29 @@ require File.join(File.dirname(__FILE__), '../spec_helpers')
 
 describe Buildr4OSGi::FeatureWriter do
   
+  before(:all) do
+    class FeatureWriterTester
+      
+    end
+    @f_w = FeatureWriterTester.new
+    @f_w.extend Buildr4OSGi::FeatureWriter
+  end
   it 'should write a valid feature.xml' do
-    feature_xml = Buildr4OSGi::FeatureWriter.writeFeatureXml(
+   
+    @f_w.feature_id = "myId"
+    @f_w.version = "1.0.0.012"
+    @f_w.branding_plugin = "myPlugin.id"
+    @f_w.copyright = "Copyright (C) 1899-1908, Acme Inc."
+    @f_w.update_sites = [{:url => "http://example.com/update1", :name => "Update site 1"}, 
+      {:url => "http://example.com/update2", :name => "Update site 2"}]
+    @f_w.discovery_sites = [{:url => "http://example.com/discovery1", :name => "Discovery site 1"}, 
+      {:url => "http://example.com/discovery2", :name => "Discovery site 2"}, 
+      {:url => "http://example.com/discovery3", :name => "Discovery site 3"}]
+    feature_xml = @f_w.writeFeatureXml(
       [{:id => "myPlugin.id", :version => "2.3.4", :"download-size" => "2", :"install-size" => "3", :unpack => false},
       {:id => "myOtherPlugin.id", :version => "2.3.5", :"download-size" => "25", :"install-size" => "30", :unpack => false},
       {:id => "myBigPlugin.id", :version => "1.2.3.4", :"download-size" => "2", :"install-size" => "300", :unpack => true}],
-        :id => "myId", 
-        :version => "1.0.0.012", 
-        :branding_plugin => "myPlugin.id", 
-        :copyright => "Copyright (C) 1899-1908, Acme Inc.", 
-        :update_sites => ["http://example.com/update1", "http://example.com/update2"], 
-        :discovery_sites => ["http://example.com/discovery1", "http://example.com/discovery2", "http://example.com/discovery3"]
-        )
+      true)
     feature_xml.should == <<-FEATURE
 <?xml version="1.0" encoding="UTF-8"?>
 <feature plugin="myPlugin.id" id="myId" version="1.0.0.012" provider-name="%provider.name" label="%feature.name">
@@ -50,32 +61,42 @@ FEATURE
   end
   
   it 'should not complain nor write an invalid feature.xml if the plugin argument is nil' do
-    feature_xml = nil
-    lambda { feature_xml = Buildr4OSGi::FeatureWriter.writeFeatureXml(
+    @f_w.feature_id = "myId"
+    @f_w.version = "1.0.0.012"
+    @f_w.branding_plugin = nil
+    @f_w.copyright = "Copyright (C) 1899-1908, Acme Inc."
+    @f_w.update_sites = [{:url => "http://example.com/update1", :name => "Update site 1"}, 
+      {:url => "http://example.com/update2", :name => "Update site 2"}]
+    @f_w.discovery_sites = [{:url => "http://example.com/discovery1", :name => "Discovery site 1"}, 
+      {:url => "http://example.com/discovery2", :name => "Discovery site 2"}, 
+      {:url => "http://example.com/discovery3", :name => "Discovery site 3"}]
+    feature_xml = @f_w.writeFeatureXml(
       [{:id => "myPlugin.id", :version => "2.3.4", :"download-size" => "2", :"install-size" => "3", :unpack => false},
       {:id => "myOtherPlugin.id", :version => "2.3.5", :"download-size" => "25", :"install-size" => "30", :unpack => false},
       {:id => "myBigPlugin.id", :version => "1.2.3.4", :"download-size" => "2", :"install-size" => "300", :unpack => true}],
-        :id => "myId", 
-        :version => "1.0.0.012", 
-        :branding_plugin => nil, 
-        :copyright => "Copyright (C) 1899-1908, Acme Inc.", 
-        :update_sites => ["http://example.com/update1", "http://example.com/update2"], 
-        :discovery_sites => ["http://example.com/discovery1", "http://example.com/discovery2", "http://example.com/discovery3"]
-        ) }.should_not raise_error
+      true)
+    feature_xml = nil
+    lambda { feature_xml = @f_w.writeFeatureXml(
+      [{:id => "myPlugin.id", :version => "2.3.4", :"download-size" => "2", :"install-size" => "3", :unpack => false},
+      {:id => "myOtherPlugin.id", :version => "2.3.5", :"download-size" => "25", :"install-size" => "30", :unpack => false},
+      {:id => "myBigPlugin.id", :version => "1.2.3.4", :"download-size" => "2", :"install-size" => "300", :unpack => true}]) }.should_not raise_error
     feature_xml.should_not match(/plugin="nil"/)
     feature_xml.should_not match(/plugin=""/)
   end
   
   it "should write a valid feature.properties" do
-    feature_properties = Buildr4OSGi::FeatureWriter.writeFeatureProperties(
-    :label => "my Feature", 
-    :provider => "Acme Inc.", 
-    :changesURL => "http://example.com/changes", 
-    :description => "Best feature ever", 
-    :licenseURL => "http://www.example.com/license", 
-    :license => "This license is an example.", 
-    :update_sites => ["Main update site", "Secondary update site"], 
-    :discovery_sites => ["Discover us", "Discover our added value!", "Discover how cool we are"])
+    @f_w.label = "my Feature"
+    @f_w.provider = "Acme Inc."
+    @f_w.changesURL = "http://example.com/changes"
+    @f_w.description = "Best feature ever"
+    @f_w.licenseURL = "http://www.example.com/license"
+    @f_w.license = "This license is an example."
+    @f_w.update_sites = [{:url => "http://example.com/update1", :name => "Update site 1"}, 
+      {:url => "http://example.com/update2", :name => "Update site 2"}]
+    @f_w.discovery_sites = [{:url => "http://example.com/discovery1", :name => "Discovery site 1"}, 
+      {:url => "http://example.com/discovery2", :name => "Discovery site 2"}, 
+      {:url => "http://example.com/discovery3", :name => "Discovery site 3"}]
+    feature_properties = @f_w.writeFeatureProperties()
     feature_properties.should == <<-PROPERTIES
 # Built by Buildr4OSGi
 

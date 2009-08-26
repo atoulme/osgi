@@ -17,6 +17,32 @@ module Buildr4OSGi
 
   module FeatureWriter
 
+    attr_accessor :feature_id
+    attr_accessor :version
+    attr_accessor :label
+    attr_accessor :copyright
+    attr_accessor :image
+    attr_accessor :provider
+    attr_accessor :description
+    attr_accessor :changesURL
+    attr_accessor :license
+    attr_accessor :licenseURL
+    attr_accessor :branding_plugin
+
+    attr_accessor :update_sites
+    attr_accessor :discovery_sites
+    
+    # :nodoc:
+    # When this module extends an object
+    # the update_sites and discovery_sites are initialized as empty arrays.
+    #
+    def FeatureWriter.extend_object(obj)
+      super(obj)
+      obj.update_sites = []
+      obj.discovery_sites = []
+    end
+    
+    
     # Writes an Eclipse feature with this format:
     #<feature id="com.acme.MyFeature" label="%feature.name"
     #	 version="5.0.100" provider-name="%provider.name"
@@ -48,19 +74,20 @@ module Buildr4OSGi
     #
     #</feature>
     #
-    def writeFeatureXml(plugins, args)
+    def writeFeatureXml(plugins, externalize_strings = true)
       x = Builder::XmlMarkup.new(:target => out = "", :indent => 1)
       x.instruct!
-      feature_properties = {"id" => args[:id], "label" => "%feature.name", "version" => args[:version], "provider-name" => "%provider.name"}
-      feature_properties.merge!("plugin" => args[:branding_plugin]) if args[:branding_plugin]
-      feature_properties.merge!("plugin" => args[:image]) if args[:image]
+      feature_properties = {"id" => feature_id, "label" => externalize_strings ? "%feature.name" : label, 
+        "version" => version, "provider-name" => externalize_strings ? "%provider.name" : provider}
+      feature_properties.merge!("plugin" => branding_plugin) if branding_plugin
+      feature_properties.merge!("plugin" => image) if image
       x.feature(feature_properties) {
-        x.description( "%description", "url" => "%changesURL")
-        x.copyright(args[:copyright])
-        x.license("%license", "url" => "%licenseURL")
+        x.description( "%description", "url" => externalize_strings ? "%changesURL" : changesURL)
+        x.copyright(copyright)
+        x.license(externalize_strings ? "%license" : license, "url" => externalize_strings ? "%licenseURL" : licenseURL)
         x.url {
-          args[:update_sites].each_index {|index| x.update("label" => "%updatesite.name#{index}", "url" => args[:update_sites].at(index) )} unless args[:update_sites].nil?
-          args[:discovery_sites].each_index {|index| x.discovery("label" => "%discoverysite.name#{index}", "url" => args[:discovery_sites].at(index) )} unless args[:discovery_sites].nil?
+          update_sites.each_index {|index| x.update("label" => externalize_strings ? "%updatesite.name#{index}" : update_sites.at(index)[:name], "url" => update_sites.at(index)[:url] )} unless update_sites.nil?
+          discovery_sites.each_index {|index| x.discovery("label" => externalize_strings ? "%discoverysite.name#{index}" : discovery_sites.at(index)[:name], "url" => discovery_sites.at(index)[:url] )} unless discovery_sites.nil?
         }
 
         for plugin in plugins
@@ -74,51 +101,41 @@ module Buildr4OSGi
     # Writes the feature.properties file to a string and returns it
     # Uses predefined keys in properties to match the keys used in feature.xml
     #
-    def writeFeatureProperties(args)
+    def writeFeatureProperties()
       properties = <<-PROPERTIES
 # Built by Buildr4OSGi
 
-feature.name=#{args[:label]}
-provider.name=#{args[:provider]}
-changesURL=#{args[:changesURL]}
-description=#{args[:description]}
-licenseURL=#{args[:licenseURL]}
-license=#{args[:license]}
+feature.name=#{label}
+provider.name=#{provider}
+changesURL=#{changesURL}
+description=#{description}
+licenseURL=#{licenseURL}
+license=#{license}
 
 PROPERTIES
-      args[:update_sites].each_index {|index| "updatesite.name#{index}=#{args[:update_sites].at(index)}\n" } unless args[:update_sites].nil?
-      args[:discovery_sites].each_index {|index| "discoverysite.name#{index}=#{args[:discovery_sites].at(index)}\n"} unless args[:discovery_sites].nil?
+      update_sites.each_index {|index| "updatesite.name#{index}=#{update_sites.at(index)[:name]}\n" } unless update_sites.nil?
+      discovery_sites.each_index {|index| "discoverysite.name#{index}=#{discovery_sites.at(index)[:name]}\n"} unless discovery_sites.nil?
       properties
     end
-
-    module_function :writeFeatureXml, :writeFeatureProperties
+    
   end
 
   class FeatureTask < ::Buildr::Packaging::Java::JarTask
-    include FeatureWriter
+    
     attr_accessor :plugins
     
-    attr_accessor :label
-    attr_accessor :copyright
-    attr_accessor :provider
-    attr_accessor :description
-    attr_accessor :changesURL
-    attr_accessor :license
-    attr_accessor :licenseURL
-    attr_accessor :branding_plugin
-
-    attr_accessor :update_sites
-    attr_accessor :discovery_sites
+    attr_accessor :feature_xml
+    attr_accessor :feature_properties
 
     def initialize(*args) #:nodoc:
       super
       @plugins = []
-      @update_sites = []
-      @discovery_sites = []
-
     end
     
     def generateFeature(project)
+      feature_id ||= project.id
+      version ||= project.version
+      
       mkpath File.join(project.base_dir, 'target')
       resolved_plugins = {}
       unless @plugins.nil? || @plugins.empty?
@@ -126,25 +143,23 @@ PROPERTIES
           resolved_plugins[adaptPlugin(plugin)] = plugin
         end
       end
-      File.open(File.join(project.base_dir, 'target', 'feature.xml'), 'w') do |f|
-        f.write(writeFeatureXml(resolved_plugins.keys, :id => project.id, :version => project.version, 
-        :branding_plugin => branding_plugin, 
-        :copyright => copyright, 
-        :update_sites => update_sites.collect {|site| site[:url]}, 
-        :discovery_sites => discovery_sites.collect {|site| site[:url]}))
+      unless feature_xml
+        File.open(File.join(project.base_dir, 'target', 'feature.xml'), 'w') do |f|
+          f.write(writeFeatureXml(resolved_plugins.keys, feature_xml.nil? && feature_properties.nil? ))
+        end
+        path("eclipse/features/#{project.id}_#{project.version}").include File.join(project.base_dir, 'target/feature.xml')
+      else
+        path("eclipse/features/#{project.id}_#{project.version}").include feature_xml
       end
-      File.open(File.join(project.base_dir, 'target', 'feature.properties'), 'w') do |f|
-        f.write(writeFeatureProperties(:label => label, 
-        :provider => provider, 
-        :changesURL => changesURL,
-        :description => description,
-        :licenseURL => licenseURL, 
-        :license => license, 
-        :update_sites => update_sites.collect {|site| site[:name]}, 
-        :discovery_sites => discovery_sites.collect {|site| site[:name]}))
+      unless feature_properties
+        File.open(File.join(project.base_dir, 'target', 'feature.properties'), 'w') do |f|
+          f.write(writeFeatureProperties())
+        end
+        path("eclipse/features/#{project.id}_#{project.version}").include File.join(project.base_dir, 'target/feature.properties')
+      else
+        path("eclipse/features/#{project.id}_#{project.version}").include feature_properties
       end
-      path("eclipse/features/#{project.id}_#{project.version}").include File.join(project.base_dir, 'target/feature.xml'), 
-        File.join(project.base_dir, 'target/feature.properties')
+      
       resolved_plugins.each_pair do |info, plugin|  
         include(plugin, :as => "eclipse/plugins/#{info[:id]}_#{info[:version]}.jar")
       end
@@ -203,6 +218,7 @@ PROPERTIES
 
     def package_as_feature(file_name)
       task = FeatureTask.define_task(file_name)
+      task.extend FeatureWriter
       task.tap do |feature|
         feature.with :manifest=>manifest, :meta_inf=>meta_inf
       end
