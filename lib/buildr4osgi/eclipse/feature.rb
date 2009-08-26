@@ -151,13 +151,13 @@ PROPERTIES
       else
         path("eclipse/features/#{project.id}_#{project.version}").include feature_xml
       end
-      unless feature_properties
+      unless feature_properties || feature_xml
         File.open(File.join(project.base_dir, 'target', 'feature.properties'), 'w') do |f|
           f.write(writeFeatureProperties())
         end
         path("eclipse/features/#{project.id}_#{project.version}").include File.join(project.base_dir, 'target/feature.properties')
       else
-        path("eclipse/features/#{project.id}_#{project.version}").include feature_properties
+        path("eclipse/features/#{project.id}_#{project.version}").include feature_properties if feature_properties
       end
       
       resolved_plugins.each_pair do |info, plugin|  

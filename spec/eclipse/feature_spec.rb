@@ -133,6 +133,72 @@ describe Buildr4OSGi::FeatureTask, "configuration" do
       {:url => "http://example.com/upup", :name => "My update site in case"}]
     }.should_not raise_error
   end
+  
+  it "should accept using an existing feature.xml without a feature.properties" do
+    featurexml = <<-FEATURE
+<feature/>
+FEATURE
+    Buildr::write "feature.xml", featurexml 
+    foo = define("foo", :version => "1.0.0") 
+    foo.package(:feature).feature_xml = "feature.xml"
+    foo.package(:feature).invoke
+    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    Zip::ZipFile.open(feature_file) do |zip|
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
+      zip.read("eclipse/features/foo_1.0.0/feature.xml").should == featurexml
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.properties").should be_nil
+    end
+  end
+  
+  it "should accept using an existing feature.xml, and an optional feature.properties" do
+    featurexml = <<-FEATURE
+<feature/>
+FEATURE
+    featurep = <<-PROPS
+key=value
+PROPS
+    Buildr::write "feature.xml", featurexml 
+    Buildr::write "feature.properties", featurep
+    foo = define("foo", :version => "1.0.0") 
+    foo.package(:feature).feature_xml = "feature.xml"
+    foo.package(:feature).feature_properties = "feature.properties"
+    foo.package(:feature).invoke
+    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    Zip::ZipFile.open(feature_file) do |zip|
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
+      zip.read("eclipse/features/foo_1.0.0/feature.xml").should == featurexml
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.properties").should_not be_nil
+      zip.read("eclipse/features/foo_1.0.0/feature.properties").should == featurep
+    end
+  end
+  
+  it "should generate feature.xml without externalizing strings when passed an existing feature.properties" do
+    featurep = <<-PROPS
+provider.0=My own provider
+PROPS
+    Buildr::write "feature.properties", featurep
+    foo = define("foo", :version => "1.0.0") 
+    f = foo.package(:feature)
+    f.feature_properties = "feature.properties"
+    f.plugins << DEBUG_UI
+    f.label = "My feature"
+    f.provider = "%provider.0"
+    f.copyright = "Copyright 1089-2345 Acme Inc"
+    f.description = "The best feature ever"
+    f.changesURL = "http://example.com/changes"
+    f.license = "The license is too long to explain"
+    f.licenseURL = "http://example.com/license"
+    foo.package(:feature).invoke
+    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    Zip::ZipFile.open(feature_file) do |zip|
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
+      feature_xml = zip.read("eclipse/features/foo_1.0.0/feature.xml")
+      feature_xml.should_not match(/%label/)
+      feature_xml.should match(/%provider\.0/)
+      zip.find_entry("eclipse/features/foo_1.0.0/feature.properties").should_not be_nil
+      zip.read("eclipse/features/foo_1.0.0/feature.properties").should == featurep
+    end
+  end
 end
   
 describe Buildr4OSGi::FeatureTask, " when running" do
