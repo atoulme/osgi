@@ -80,7 +80,7 @@ describe OSGi::BuildLibraries do
   
   it 'should warn when the source of a library is unavailable' do
     library_project(DEBUG_UI, "group", "foo", "1.0.0")
-    lambda {project("foo").package(:sources).invoke}.should show_warning(/Could not find sources for/)    
+    lambda {project("foo").package(:sources).invoke}.should show_warning(/Failed to download the sources/)    
   end
   
   it 'should raise an exception if passed a dependency it can\'t understand' do

@@ -46,6 +46,14 @@ module OSGi #:nodoc:
       module_function :walk_libs
     end
 
+    # Monkey-patching the artifact so that it warns instead of failing
+    # when it cannot download the source
+    module SkipSourceDownload
+      
+      def fail_download(remote_uris)
+        warn "Failed to download the sources #{to_spec}, tried the following repositories:\n#{remote_uris.join("\n")}"
+      end
+    end
     #
     #
     # Defines a project as the merge of the dependencies.
@@ -94,18 +102,16 @@ module OSGi #:nodoc:
             
             
           }
-          sources_id = "\#\{id\}-sources-\#\{project.version\}"
           package(:sources).tap do |task|
-            walk_libs(#{deps_as_str}) {|lib|
-              lib_src = Buildr::artifact(lib.to_hash.merge(:classifier => "sources"))
-              begin
+            task.enhance do
+              walk_libs(#{deps_as_str}) {|lib|
+                lib_src = Buildr::artifact(lib.to_hash.merge(:classifier => "sources"))
+                lib_src.extend Buildr4OSGi::SkipSourceDownload
                 lib_src.invoke # make sure the artifact is present.
-                task.merge(lib_src)#{exclusion}#{inclusion}
-              rescue Exception => e
-                warn "Could not find sources for \#\{lib.to_spec\}"
-                trace e.message
-              end
-            }
+                
+                task.merge(lib_src)#{exclusion}#{inclusion} if File.exist?(lib_src.to_s)
+              }
+            end
           end
         end
       }
