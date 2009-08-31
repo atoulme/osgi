@@ -46,7 +46,6 @@ PLUGIN_PROPERTIES
     File.exists?(@path).should be_true
     Zip::ZipFile.open(@path) do |zip|
       zip.find_entry("Main.class").should_not be_nil
-      
     end
   end
   
@@ -121,5 +120,41 @@ PLUGIN_PROPERTIES
     foo = define("foo", :version => "1.0.0")
     lambda {foo.package(:plugin).invoke}.should show_warning("plugin.xml is missing. Please add it to your project.") && 
       show_warning("plugin.properties is missing. Please add it to your project.")
+  end
+  
+  it 'should include all the resources present at the root of the plugin' do
+    foo = define("foo", :version => "1.0.0") do
+       package(:plugin).manifest["Bundle-Version"] = "2.0.0"
+       Buildr::write "plugin.xml", ""
+       mkpath "conf"
+       Buildr::write "conf/log4j.properties", ""
+     end
+     foo.package(:plugin).invoke
+     Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
+       zip.find_entry("conf/log4j.properties").should_not be_nil
+     end
+  end
+  
+  it 'should not include java files or classes by mistake' do
+    Buildr::write "plugin.xml", ""
+    Buildr::write "src/main/java/Main.java", "public class Main { public static void main(String[] args) {}}"
+    Buildr::write "src/main/java/de/thing/HelloWorld.java", "package de.thing;public class HelloWorld {public static void main(String[] args) {}}"
+    Buildr::write "customsrc/main/java/org/thing/Hello.java", ""
+    Buildr::write "bin/org/thing/Hello.class", ""
+    foo = define("foo", :version => "1.0.0") do
+      compile.using :target=>'1.5'
+      package(:plugin).manifest["Bundle-Version"] = "2.0.0"   
+    end
+    foo.compile.invoke
+    foo.package(:plugin).invoke
+    Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
+      zip.find_entry("customsrc").should be_nil
+      zip.find_entry("src").should be_nil
+      zip.find_entry("src/main/java/de/thing/HelloWorld.java").should be_nil
+      zip.find_entry("customsrc/main/java/org/thing/Hello.java").should be_nil
+      zip.find_entry("bin/org/thing/Hello.class").should be_nil
+      zip.find_entry("Main.class").should_not be_nil
+       zip.find_entry("de/thing/HelloWorld.class").should_not be_nil
+    end
   end
 end

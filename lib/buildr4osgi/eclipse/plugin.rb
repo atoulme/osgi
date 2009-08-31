@@ -17,13 +17,25 @@ module Buildr4OSGi
   
   class PluginTask < ::Buildr::Packaging::Java::JarTask
     
+    #
+    # We add all the resources located at the root of the plugin.
+    # We remove all the Java and class files.
+    #
     def initialize(*args) #:nodoc:
       super
       prepare do
+        exclude("**/.*")
+        exclude("**/*.jar")
+        exclude("**/*.java")
+        exclude("src/**")
+        exclude("*src/**")
+        exclude("bin/**")
+        exclude("target/**")
+        exclude("build.properties")
         includeOrWarn(".", "plugin.xml")
         includeOrWarn(".", "plugin.properties")
+        include("**")
       end
-    
     end
     
     def includeOrWarn(include_path, file_name)
