@@ -87,5 +87,18 @@ describe OSGi::BuildLibraries do
     lambda {library_project(123, "group", "foo", "1.0.0")}.should raise_error(/Don't know how to interpret lib 123/)
   end
   
+  it "should let the user specify manifest headers" do
+    library_project(SLF4J, "group", "foo", "1.0.0", :manifest => {"Require-Bundle" => "org.bundle", "Some-Header" => "u1,u2"})
+    foo = project("foo")
+    foo.package(:jar).invoke
+    jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
+    File.exists?(jar).should be_true
+    Zip::ZipFile.open(jar) {|zip|
+      zip.find_entry("META-INF/MANIFEST.MF").should_not be_nil  
+      manifest = zip.read("META-INF/MANIFEST.MF")
+      manifest.should match(/Require-Bundle: org.bundle/)
+      manifest.should match(/Some-Header: u1,u2/)
+    }
+  end
   
 end

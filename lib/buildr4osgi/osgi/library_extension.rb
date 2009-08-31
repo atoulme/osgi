@@ -61,7 +61,8 @@ module OSGi #:nodoc:
     # name: the name of the project to define
     # version: the version of the project to define
     #
-    def library_project(dependencies, group, name, version, options = {:exclude => ["META-INF/MANIFEST.MF"], :include => []})
+    def library_project(dependencies, group, name, version, options = {:exclude => ["META-INF/MANIFEST.MF"], :include => [], :manifest => {}})
+      options[:manifest] ||= {} 
       deps_as_str = []
       LibraryWalker::walk_libs(dependencies) {|lib|
         deps_as_str << lib.to_spec
@@ -98,7 +99,7 @@ module OSGi #:nodoc:
               "Bundle-SymbolicName" => project.name,
               "Bundle-Name" => names.join(", "),
               "Bundle-Vendor" => "Intalio, Inc."
-            }
+            }.merge(#{options[:manifest].inspect})
             
             
           }
