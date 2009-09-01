@@ -5,7 +5,7 @@
 # "License"); you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -17,33 +17,8 @@ module Buildr4OSGi
   
   class PluginTask < ::Buildr::Packaging::Java::JarTask
     
-    #
-    # We add all the resources located at the root of the plugin.
-    # We remove all the Java and class files.
-    #
     def initialize(*args) #:nodoc:
       super
-      prepare do
-        exclude("**/.*")
-        exclude("**/*.jar")
-        exclude("**/*.java")
-        exclude("src/**")
-        exclude("*src/**")
-        exclude("bin/**")
-        exclude("target/**")
-        exclude("build.properties")
-        includeOrWarn(".", "plugin.xml")
-        includeOrWarn(".", "plugin.properties")
-        include("**")
-      end
-    end
-    
-    def includeOrWarn(include_path, file_name)
-      if File.exists?(file_name)
-        path(include_path).include(file_name)
-      else
-        warn("#{file_name} is missing. Please add it to your project.")
-      end
     end
     
   end
@@ -55,8 +30,14 @@ module Buildr4OSGi
     
     def package_as_plugin(file_name)
       task = PluginTask.define_task(file_name).tap do |plugin|
+        p_r = ResourcesTask.define_task
+        p_r.send :associate_with, project, :main
+        p_r.from("#{project.base_dir}").exclude("**/.*").exclude("**/*.jar").exclude("**/*.java")
+        p_r.exclude("src/**").exclude("*src").exclude("*src/**").exclude("build.properties")
+        p_r.exclude("bin").exclude("bin/**")
+        p_r.exclude("target/**").exclude("target")
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
-        plugin.with [compile.target, resources.target].compact
+        plugin.with [compile.target, resources.target, p_r.target].compact
       end
     end
     
