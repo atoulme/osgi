@@ -90,6 +90,23 @@ PLUGIN_PROPERTIES
   
   it "should package the plugin manifest guessing the name and the version from the project information" do
     define_project
+    @plugin = define("bar") do
+      project.version = "1.0.0.001"
+    end
+    @path = @plugin.package(:plugin).to_s
+     @plugin.package(:plugin).invoke
+    File.exists?(@path).should be_true
+    Zip::ZipFile.open(@path) do |zip|
+      zip.find_entry("META-INF/MANIFEST.MF").should_not be_nil
+      bundle = OSGi::Bundle.fromManifest(Manifest.read(zip.read("META-INF/MANIFEST.MF")), @path)
+      bundle.should_not be_nil
+      bundle.name.should == "bar" 
+      bundle.version.should == "1.0.0.001"
+    end
+  end
+  
+  it "should package the plugin manifest guessing the name and the version from the project information (even though the version is defined inside the project)" do
+    define_project
      @plugin.package(:plugin).invoke
     File.exists?(@path).should be_true
     Zip::ZipFile.open(@path) do |zip|
@@ -178,6 +195,34 @@ PLUGIN_PROPERTIES
       zip.find_entry("bin/org/thing/Hello.class").should be_nil
       zip.find_entry("Main.class").should_not be_nil
        zip.find_entry("de/thing/HelloWorld.class").should_not be_nil
+    end
+  end
+end
+
+describe Buildr4OSGi::PluginTask, "with packaging libs" do
+  
+  it "should package libraries under /lib" do
+    foo = define("foo", :version => "1.0.0") do
+      compile.using :target=>'1.5'
+      package(:plugin).libs << SLF4J[0]
+    end
+    
+    foo.package(:plugin).invoke
+    Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
+      zip.find_entry("lib/slf4j-api-1.5.8.jar").should_not be_nil
+    end
+  end
+  
+  it "should add the libraries to the Bundle-Classpath" do
+    foo = define("foo", :version => "1.0.0") do
+      compile.using :target=>'1.5'
+      package(:plugin).libs << SLF4J[0]
+    end
+    
+    foo.package(:plugin).invoke
+    Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
+      zip.find_entry("META-INF/MANIFEST.MF").should_not be_nil
+      zip.read("META-INF/MANIFEST.MF").should match(/Bundle-Classpath: \.,lib\/slf4j-api-1\.5\.8\.jar/)
     end
   end
 end

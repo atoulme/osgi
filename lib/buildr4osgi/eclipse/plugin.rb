@@ -17,8 +17,19 @@ module Buildr4OSGi
   
   class PluginTask < ::Buildr::Packaging::Java::JarTask
     
+    # Artifacts to include under /lib.
+    attr_accessor :libs
+    
     def initialize(*args) #:nodoc:
       super
+      @libs = []
+      prepare do
+        unless @libs.nil? || @libs.empty?
+          artifacts = Buildr.artifacts(@libs)
+          path('lib').include artifacts
+          manifest["Bundle-Classpath"] = [".", artifacts.collect {|a| "lib/#{File.basename(a.to_s)}"}].flatten.join(",")
+        end
+      end
     end
     
   end
@@ -36,6 +47,10 @@ module Buildr4OSGi
         p_r.exclude("src/**").exclude("*src").exclude("*src/**").exclude("build.properties")
         p_r.exclude("bin").exclude("bin/**")
         p_r.exclude("target/**").exclude("target")
+        manifest = project.manifest.merge({"Bundle-Version" => project.version, 
+                          "Bundle-SymbolicName" => project.id, 
+                          "Bundle-Name" => project.comment || project.name})
+                           
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
         plugin.with [compile.target, resources.target, p_r.target].compact
       end
@@ -43,12 +58,6 @@ module Buildr4OSGi
     
     def package_as_plugin_spec(spec) #:nodoc:
       spec.merge(:type=>:jar)
-    end
-    
-    before_define do |project|
-      project.manifest = {"Bundle-Version" => project.version, 
-                          "Bundle-SymbolicName" => project.id, 
-                          "Bundle-Name" => project.comment || project.name}.merge(project.manifest)
     end
     
   end
