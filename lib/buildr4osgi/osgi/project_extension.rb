@@ -99,11 +99,20 @@ module OSGi
             if File.directory?(bundle.file)
               begin
                
-                tmp = File.join(Dir::tmpdir, "bundle")
+                tmp = File.join(Dir::tmpdir, File.basename(bundle.file))
+                rm tmp if File.exists? tmp
                 base = Pathname.new(bundle.file)
                 Zip::ZipFile.open(tmp, Zip::ZipFile::CREATE) {|zipfile|
                   Dir.glob("#{bundle.file}/**/**").each do |file|
-                    zipfile.add(Pathname.new(file).relative_path_from(base), file)
+                    if(file.match(/.*\.jar/)) #unpack the jars in the directory so its contents are readable by all Java compilers.
+                      Zip::ZipFile.open(file) do |source|
+                        source.entries.reject { |entry| entry.directory? }.each do |entry|
+                          zipfile.get_output_stream(entry.name) {|output| output.write source.read(entry.name)}
+                        end
+                      end
+                    else
+                      zipfile.add(Pathname.new(file).relative_path_from(base), file)
+                    end
                   end
                 }
                 bundle.file = tmp

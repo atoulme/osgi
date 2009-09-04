@@ -243,6 +243,7 @@ Require-Bundle: org.eclipse.core.resources2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.1.R_20090512
 MANIFEST
+    cp_r File.join(File.dirname(__FILE__), "plugins", "org.eclipse.core.runtime.compatibility.registry_3.2.200.v20090429-1800"), e1 + "/plugins"
   end
   
   it 'should install the dependencies into the local Maven repository' do
@@ -256,26 +257,40 @@ MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.dependencies
-    foo.task('osgi:install:dependencies').invoke
+    foo.task('osgi:install:dependencies').invoke  
     File.exist?(artifact("osgi:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").to_s).should be_true
     
   end
   
   it 'should jar up OSGi bundles represented as directories' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
-Require-Bundle: org.eclipse.debug.ui,org.eclipse.core.resources;bundle-version=3.5.1.R_20090512
+Require-Bundle: org.eclipse.debug.ui,
+ org.eclipse.core.resources;bundle-version=3.5.1.R_20090512,
+ org.eclipse.core.runtime.compatibility.registry
 MANIFEST
-    }
+    foo = define('foo')
     foo.osgi.registry.containers = @eclipse_instances.dup
     
     foo.task('osgi:resolve:dependencies').invoke
     foo.task('osgi:install:dependencies').invoke
-    
+    p File.read("dependencies.yml")
     File.exist?(artifact("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090512").to_s).should be_true
+    Zip::ZipFile.open(artifact("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090512").to_s) {|zip|
+     zip.entries.empty?.should_not be_true 
+    }
+    p artifact("osgi:org.eclipse.core.runtime.compatibility.registry:jar:3.2.200.v20090429-1800").to_s
+    File.exist?(artifact("osgi:org.eclipse.core.runtime.compatibility.registry:jar:3.2.200.v20090429-1800").to_s).should be_true
+    require "ruby-debug"
+    Debugger.start
+    #debugger
+    Zip::ZipFile.open(artifact("osgi:org.eclipse.core.runtime.compatibility.registry:jar:3.2.200.v20090429-1800").to_s) {|zip|
+     print zip.entries.join("\n")
+     zip.entries.empty?.should_not be_true 
+    }
   end
   
   it 'should upload dependencies to the releasing repository' do
