@@ -29,6 +29,7 @@ module Buildr4OSGi
           path('lib').include artifacts
           manifest["Bundle-Classpath"] = [".", artifacts.collect {|a| "lib/#{File.basename(a.to_s)}"}].flatten.join(",")
         end
+        
       end
     end
     
@@ -47,9 +48,14 @@ module Buildr4OSGi
         p_r.exclude("src/**").exclude("*src").exclude("*src/**").exclude("build.properties")
         p_r.exclude("bin").exclude("bin/**")
         p_r.exclude("target/**").exclude("target")
-        manifest = project.manifest.merge({"Bundle-Version" => project.version, 
-                          "Bundle-SymbolicName" => project.id, 
-                          "Bundle-Name" => project.comment || project.name})
+        
+        if File.exists?("META-INF/MANIFEST.MF")
+          read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read("META-INF/MANIFEST.MF")).main
+          project.manifest = read_m.merge(project.manifest)
+        end
+        manifest = {"Bundle-Version" => project.version, 
+                                          "Bundle-SymbolicName" => project.id, 
+                                          "Bundle-Name" => project.comment || project.name}.merge project.manifest
                            
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
         plugin.with [compile.target, resources.target, p_r.target].compact

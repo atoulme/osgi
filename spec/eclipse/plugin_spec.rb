@@ -225,4 +225,24 @@ describe Buildr4OSGi::PluginTask, "with packaging libs" do
       zip.read("META-INF/MANIFEST.MF").should match(/Bundle-Classpath: \.,lib\/slf4j-api-1\.5\.8\.jar/)
     end
   end
+  
+end
+
+describe Buildr4OSGi::PluginTask, "with existing manifests" do
+  
+  it "should use the values of an existing manifest" do
+    Buildr::write "META-INF/MANIFEST.MF", "Bundle-SymbolicName: dev\nExport-Package: package1,\n package2"
+    foo = define("foo", :version => "1.0.0") do
+      compile.using :target=>'1.5'
+      package(:plugin)
+    end
+    
+    foo.package(:plugin).invoke
+    Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
+      manifest =zip.read("META-INF/MANIFEST.MF")
+      manifest.should match(/Export-Package: package1,package2/)
+      manifest.should match(/Bundle-SymbolicName: dev/)
+    end
+  end
+  
 end
