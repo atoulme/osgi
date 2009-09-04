@@ -54,9 +54,9 @@ module Buildr4OSGi
           project.manifest = read_m.merge(project.manifest)
         end
         manifest = {"Bundle-Version" => project.version, 
-                                          "Bundle-SymbolicName" => project.id, 
-                                          "Bundle-Name" => project.comment || project.name}.merge project.manifest
-                           
+                    "Bundle-SymbolicName" => project.id, 
+                    "Bundle-Name" => project.comment || project.name}.merge project.manifest
+        manifest["Bundle-Version"] = project.version         
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
         plugin.with [compile.target, resources.target, p_r.target].compact
       end

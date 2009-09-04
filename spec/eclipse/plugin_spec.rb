@@ -245,4 +245,20 @@ describe Buildr4OSGi::PluginTask, "with existing manifests" do
     end
   end
   
+  it "should always use the project version instead of the version defined in the manifest" do
+    Buildr::write "META-INF/MANIFEST.MF", "Bundle-SymbolicName: dev\nExport-Package: package1,\n package2\nBundle-Version: 1.0.0"
+    foo = define("foo", :version => "6.0.1.003") do
+      compile.using :target=>'1.5'
+      package(:plugin)
+    end
+    
+    foo.package(:plugin).invoke
+    Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
+      manifest =zip.read("META-INF/MANIFEST.MF")
+      manifest.should match(/Bundle-Version: 6.0.1.003/)
+      manifest.should match(/Bundle-SymbolicName: dev/)
+    end
+    
+  end
+  
 end
