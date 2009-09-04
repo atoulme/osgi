@@ -277,18 +277,14 @@ MANIFEST
     
     foo.task('osgi:resolve:dependencies').invoke
     foo.task('osgi:install:dependencies').invoke
-    p File.read("dependencies.yml")
     File.exist?(artifact("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090512").to_s).should be_true
     Zip::ZipFile.open(artifact("osgi:org.eclipse.core.resources:jar:3.5.1.R_20090512").to_s) {|zip|
      zip.entries.empty?.should_not be_true 
     }
-    p artifact("osgi:org.eclipse.core.runtime.compatibility.registry:jar:3.2.200.v20090429-1800").to_s
     File.exist?(artifact("osgi:org.eclipse.core.runtime.compatibility.registry:jar:3.2.200.v20090429-1800").to_s).should be_true
-    require "ruby-debug"
-    Debugger.start
-    #debugger
+    
     Zip::ZipFile.open(artifact("osgi:org.eclipse.core.runtime.compatibility.registry:jar:3.2.200.v20090429-1800").to_s) {|zip|
-     print zip.entries.join("\n")
+     
      zip.entries.empty?.should_not be_true 
     }
   end

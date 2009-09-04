@@ -66,6 +66,9 @@ module Buildr4OSGi
       spec.merge(:type=>:jar)
     end
     
+    alias :package_as_bundle :package_as_plugin
+    alias :package_as_bundle_spec :package_as_plugin_spec 
+    
   end
   
 end
