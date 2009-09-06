@@ -141,6 +141,7 @@ FEATURE
     Buildr::write "feature.xml", featurexml 
     foo = define("foo", :version => "1.0.0") 
     foo.package(:feature).feature_xml = "feature.xml"
+    
     foo.package(:feature).invoke
     feature_file = File.join(foo.base_dir, "target", "foo-1.0.0-feature.jar")
     Zip::ZipFile.open(feature_file) do |zip|
@@ -230,6 +231,29 @@ describe Buildr4OSGi::FeatureTask, " when running" do
     end
   end
   
+  it 'should complain if one of the dependencies is not a plugin' do
+    @foo.package(:feature).plugins << SLF4J
+    lambda { @foo.package(:feature).invoke}.should raise_error(
+    /The dependency .* is not an Eclipse plugin: make sure the headers Bundle-SymbolicName and Bundle-Version are present in the manifest/)
+  end
+  
+  it "should let the user tell which plugins should be unjarred" do
+    f = @foo.package(:feature)
+    f.plugins.clear
+    @bar = define("bar", :version => "1.0.0") do
+      package(:jar).with :manifest => {"Bundle-SymbolicName" => "bar", "Bundle-Version" => "1.0.0"}
+    end
+    f.plugins.<< DEBUG_UI, :unjarred => true
+    f.plugins.<< @bar, :unjarred => true
+    @foo.package(:feature).invoke
+    feature_file = @foo.package(:feature).to_s
+    File.exists?(feature_file).should be_true
+    Zip::ZipFile.open(feature_file) do |zip|
+      zip.find_entry("eclipse/plugins/org.eclipse.debug.ui_3.4.1.v20080811_r341/META-INF/MANIFEST.MF").should_not be_nil
+      zip.find_entry("eclipse/plugins/bar_1.0.0/META-INF/MANIFEST.MF").should_not be_nil
+    end
+  end
+  
 end
 
 describe Buildr4OSGi::FeatureTask, " package subprojects" do
@@ -257,7 +281,7 @@ describe Buildr4OSGi::FeatureTask, " package subprojects" do
   
   it "should create a jar file with the subproject packaged as a jar inside it" do
     @foo.package(:feature).invoke
-    feature_file = File.join(@foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    feature_file = @foo.package(:feature).to_s
     File.exists?(feature_file).should be_true
     Zip::ZipFile.open(feature_file) do |zip|
       zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
@@ -267,10 +291,5 @@ describe Buildr4OSGi::FeatureTask, " package subprojects" do
     end
   end
   
-  it 'should complain if one of the dependencies is not a plugin' do
-    @foo.package(:feature).plugins << SLF4J
-    lambda { @foo.package(:feature).invoke}.should raise_error(
-    /The dependency .* is not an Eclipse plugin: make sure the headers Bundle-SymbolicName and Bundle-Version are present in the manifest/)
   
-  end
 end

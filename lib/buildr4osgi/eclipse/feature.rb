@@ -119,7 +119,9 @@ PROPERTIES
     end
     
   end
-
+  
+  
+  
   class FeatureTask < ::Buildr::Packaging::Java::JarTask
     
     attr_accessor :plugins
@@ -129,7 +131,8 @@ PROPERTIES
 
     def initialize(*args) #:nodoc:
       super
-      @plugins = []
+      @unjarred = {}
+      @plugins = ArrayAddWithOptions.new(@unjarred)
     end
     
     def generateFeature(project)
@@ -139,8 +142,19 @@ PROPERTIES
       mkpath File.join(project.base_dir, 'target')
       resolved_plugins = {}
       unless @plugins.nil? || @plugins.empty?
-        Buildr.artifacts(plugins).flatten.each do |plugin|
-          resolved_plugins[adaptPlugin(plugin)] = plugin
+        plugins.flatten.each do |plugin|
+          
+          artifact = case 
+            when plugin.is_a?(String)
+              Buildr::artifact(plugin)
+            when plugin.is_a?(Buildr::Project)
+              Buildr::artifact(plugin.package(:plugin))
+            else 
+              plugin
+            end
+          info = adaptPlugin(artifact)
+          info[:unjarred] = @unjarred[plugin]
+          resolved_plugins[info] = artifact
         end
       end
       unless feature_xml
@@ -161,15 +175,33 @@ PROPERTIES
       end
       
       resolved_plugins.each_pair do |info, plugin|  
-        include(plugin, :as => "eclipse/plugins/#{info[:id]}_#{info[:version]}.jar")
+        if info[:unjarred]
+          merge(plugin, :path => "eclipse/plugins/#{info[:id]}_#{info[:version]}")
+        else
+          include(plugin, :as => "eclipse/plugins/#{info[:id]}_#{info[:version]}.jar")
+        end
       end
     end
     
     protected
     
-    def adaptPlugin(plugin)
+    class ArrayAddWithOptions < Array
       
-      plugin = Buildr::artifact(plugin) if plugin.is_a?(String)
+      def initialize(options_hash) 
+        @options_hash = options_hash
+      end
+      
+      def add_with_options(plugin, options = {:unjarred => false})
+        add(plugin)
+        @options_hash[plugin] = options[:unjarred] if options[:unjarred]
+      end
+      
+      alias :add :<<
+      alias :<< :add_with_options
+
+    end
+    
+    def adaptPlugin(plugin)
       name = nil
       size = nil
       version = nil
