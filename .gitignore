@@ -3,3 +3,4 @@ failed
 _site
 tmp
 rdoc
+buildr4osgi-*.gem
