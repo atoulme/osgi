@@ -49,8 +49,9 @@ module Buildr4OSGi
         p_r.exclude("bin").exclude("bin/**")
         p_r.exclude("target/**").exclude("target")
         
-        if File.exists?("META-INF/MANIFEST.MF")
-          read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read("META-INF/MANIFEST.MF")).main
+        manifest_location = File.join(project.base_dir, "META-INF", "MANIFEST.MF")
+        if File.exists?(manifest_location)
+          read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read(manifest_location)).main
           project.manifest = read_m.merge(project.manifest)
         end
         manifest = {"Bundle-Version" => project.version, 
