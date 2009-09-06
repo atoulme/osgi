@@ -101,4 +101,9 @@ describe OSGi::BuildLibraries do
     }
   end
   
+  it "should add a manifest method for users to grab the manifest of the library" do
+    hash = manifest(DEBUG_UI)
+    hash.should be_instance_of(Hash)
+    hash["Bundle-SymbolicName"].should == "org.eclipse.debug.ui; singleton:=true"
+  end
 end

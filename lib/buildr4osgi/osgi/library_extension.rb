@@ -49,7 +49,6 @@ module OSGi #:nodoc:
     # Monkey-patching the artifact so that it warns instead of failing
     # when it cannot download the source
     module SkipSourceDownload
-      
       def fail_download(remote_uris)
         warn "Failed to download the sources #{to_spec}, tried the following repositories:\n#{remote_uris.join("\n")}"
       end
@@ -116,6 +115,22 @@ module OSGi #:nodoc:
           end
         end
       }
+    end
+    
+    #
+    # Returns the main section of the manifest of the bundle.
+    #
+    def manifest(lib)
+      artifact = Buildr.artifact(lib)
+      artifact.invoke # download it if needed.
+      
+      m = nil
+      Zip::ZipFile.open(artifact.to_s) do |zip|
+        raise "No manifest contained in #{lib}" if zip.find_entry("META-INF/MANIFEST.MF").nil?
+        m = zip.read("META-INF/MANIFEST.MF")
+      end
+      manifest = ::Buildr::Packaging::Java::Manifest.new(m)
+      manifest.main
     end
   end
 end
