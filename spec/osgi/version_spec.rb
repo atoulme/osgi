@@ -83,6 +83,11 @@ describe OSGi::Version do
   it 'should find if two versions are equal' do
     (OSGi::Version.new('1.0.0.001-March') <=> "1.0.0.001-March").should == 0
   end
+  
+  it "should consider a version with no qualifier equals the same version with a qualifier" do
+    (OSGi::Version.new('2.5.0') == "2.5.0.v200806031605").should be_true
+    (OSGi::Version.new('2.5.0.v200806031605') == "2.5.0").should be_true
+  end
 end
 
 describe OSGi::VersionRange do

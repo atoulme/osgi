@@ -50,7 +50,7 @@ module OSGi #:nodoc:
       end
 
       [:major, :minor, :tiny, :qualifier].each do |digit|
-        return 0 if send(digit).nil? 
+        return 0 if send(digit).nil? or other.send(digit).nil?
 
         comparison = send(digit) <=> other.send(digit)
         if comparison != 0
