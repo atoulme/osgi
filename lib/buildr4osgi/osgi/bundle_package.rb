@@ -33,14 +33,15 @@ module OSGi #:nodoc:
     # Resolves the matching artifacts associated with the project.
     #
     def resolve_matching_artifacts(project)
-      resolved = case
-      when version.is_a?(VersionRange) then
-        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
-      when version.nil? then
-        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name)}
-      else
-        project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
-      end
+      # Collect the bundle projects, duplicate them so no changes can be applied to them
+      # and extend them with the BundleProjectMatcher module
+      b_projects = OSGi::BundleProjects::bundle_projects.select {|p|
+        p.extend OSGi::BundleProjectMatcher 
+        p.matches(:exports_package => name, :version => version)
+      }
+      return b_projects unless b_projects.empty?
+      
+      resolved = project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
       resolved.flatten.compact.collect{|b| b.dup}
     end
     

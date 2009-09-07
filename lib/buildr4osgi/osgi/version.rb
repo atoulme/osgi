@@ -118,7 +118,7 @@ module OSGi #:nodoc:
     # Uses OSGi versioning rules to determine if the version is in range.
     #
     def in_range(version)
-      return in_range(version.min) if version.is_a?(VersionRange)
+      return in_range(version.min) && (version.max_infinite ? true : in_range(version.max)) if version.is_a?(VersionRange)
         
       result = min_inclusive ? min <= version : min < version
       if (!max_infinite)

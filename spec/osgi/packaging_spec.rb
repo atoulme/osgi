@@ -15,7 +15,7 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
-describe Buildr4OSGi::PluginTask do
+describe OSGi::BundleTask do
   
   def define_project
     Buildr::write "plugin.xml", <<-PLUGIN_XML
@@ -228,7 +228,7 @@ PLUGIN_PROPERTIES
   end
 end
 
-describe Buildr4OSGi::PluginTask, "with packaging libs" do
+describe OSGi::BundleTask, "with packaging libs" do
   
   it "should package libraries under /lib" do
     foo = define("foo", :version => "1.0.0") do
@@ -257,7 +257,7 @@ describe Buildr4OSGi::PluginTask, "with packaging libs" do
   
 end
 
-describe Buildr4OSGi::PluginTask, "with existing manifests" do
+describe OSGi::BundleTask, "with existing manifests" do
   
   it "should use the values of an existing manifest" do
     Buildr::write "META-INF/MANIFEST.MF", "Bundle-SymbolicName: dev\nExport-Package: package1,\n package2"
@@ -309,4 +309,26 @@ describe Buildr4OSGi::PluginTask, "with existing manifests" do
     
   end
   
+end
+
+
+describe OSGi::BundleProjects do
+  
+  it "should find a project packaging as an OSGi bundle" do
+    foo = define("foo", :version => "1.0") do
+      package(:bundle)
+    end
+    bundle_projects.should include(foo)
+  end
+  
+  it "should not include a project that doesn't package as an OSGi bundle" do
+    foo = define("foo", :version => "1.0") do
+      package(:bundle)
+    end
+    bar = define("bar", :version => "1.0") do
+      package(:jar)
+    end
+    bundle_projects.should include(foo)
+    bundle_projects.should_not include(bar)
+  end
 end

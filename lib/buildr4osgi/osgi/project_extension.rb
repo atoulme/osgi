@@ -18,27 +18,28 @@ module OSGi
   
   module BundleCollector #:nodoc:
     
-    attr_accessor :bundles
+    attr_accessor :bundles, :projects, :project_dependencies
     
     # Collects the bundles associated with a project.
     # Returns them as a sorted array.
     #
     def collect(project)
       @bundles = []
+      @projects = []
       project.manifest_dependencies().each {|dep| _collect(dep, project)}
-      @bundles.sort
     end
     
     # Collects the bundles associated with the bundle
     # 
     def _collect(bundle, project)
-      if bundle.is_a? Bundle
-        if bundle.resolve!(project)
+      if bundle.is_a?(Bundle)
+        bundle = bundle.resolve(project)
+        unless bundle.nil?
           if !(@bundles.include? bundle)
             @bundles << bundle
             @bundles |= bundle.fragments(project)       
             (bundle.bundles + bundle.imports).each {|b|
-              _collect(b, project)  
+              _collect(b, project)
             }
           end
         end
@@ -51,6 +52,8 @@ module OSGi
             }
           end
         }
+      elsif bundle.is_a?(Buildr::Project)
+        @projects << bundle
       end
     end
     
@@ -64,19 +67,19 @@ module OSGi
       super
 
       enhance do |task|
-        dependencies = {}
+        _dependencies = {}
+        _projects = {}
         project.projects.each do |subp|
-          subp_deps = collect(subp)
-          if subp_deps.empty?
-            warn "No OSGi dependencies found for #{subp.name}"
-          else
-            dependencies[subp.name] = subp_deps
-          end
+          collect(subp)
+          _projects[subp.name] = projects.collect {|p| p.name}.sort #unless projects.empty?
+          _dependencies[subp.name] = bundles.sort #unless bundles.empty?
         end
         
-        dependencies[project.name] = collect(project)
-        
-        Buildr::write File.join(project.base_dir, "dependencies.yml"), dependencies.to_yaml
+        collect(project)
+        _dependencies[project.name] = bundles.sort #unless bundles.empty?
+        _projects[project.name] = projects.collect {|p| p.name}.sort #unless projects.empty?
+        Buildr::write File.join(project.base_dir, "dependencies.yml"), 
+          {"dependencies" => _dependencies, "projects" => _projects}.to_yaml
       end
     end
   end
@@ -180,10 +183,17 @@ module OSGi
     # Then reads the dependencies from dependencies.yml
     #
     def dependencies(&block)
-      task('osgi:resolve:dependencies').enhance(&block).invoke if !(File.exists?("dependencies.yml"))
-      dependencies =YAML.load(File.read("dependencies.yml"))
+      
+      def find_root(project)
+        project.parent.nil? ? project : project.parent
+      end
+      
+      base_dir = find_root(project).base_dir
+      task('osgi:resolve:dependencies').enhance(&block).invoke if !(File.exists?(File.join(base_dir, "dependencies.yml")))
+      dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
       names = [project.name] + project.projects.collect {|p| p.name}
-      return dependencies.collect {|key, value| value if names.include? key}.flatten.compact.uniq
+      return (dependencies["dependencies"].collect {|key, value| value if names.include? key} + 
+          dependencies["projects"].collect {|key, value| value.collect {|p| project(p) } if names.include? key}).flatten.compact.uniq
     end
 
     class OSGi #:nodoc:
@@ -227,7 +237,7 @@ module OSGi
     def manifest_dependencies()
       return [] unless File.exists?("#{base_dir}/META-INF/MANIFEST.MF")
       as_bundle = Bundle.fromManifest(Manifest.read(File.read(File.join(project.base_dir, "META-INF/MANIFEST.MF"))), project.name)
-      as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve(project)} + as_bundle.imports.collect {|i| i.resolve(project)}.flatten
+      as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve(project)}.compact + as_bundle.imports.collect {|i| i.resolve(project)}.flatten
     end
   end
 end

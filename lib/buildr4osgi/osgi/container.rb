@@ -98,15 +98,25 @@ module OSGi #:nodoc:
     #  exports_package: a package exported by the bundle
     def find(criteria = {})
       selected = bundles + fragments
+      
       if (criteria[:name])
         selected = selected.select {|b| b.name == criteria[:name]}
       end
-      if (criteria[:version] && criteria[:exports_package].nil?)
-        selected = selected.select {|b| b.version == criteria[:version]}
-      end
       if (criteria[:exports_package])
-        selected = selected.select {|b| !(b.exported_packages.select {|package| package.name == criteria[:exports_package] && 
-          (criteria[:version].nil? || criteria[:version].in_range(package.version))}.empty?)}
+        selected = selected.select {|b| 
+          !(b.exported_packages.select {|package| 
+            package.name == criteria[:exports_package] &&
+            (criteria[:version].nil? || criteria[:version].in_range(package.version))
+          }.empty?)
+        }
+      else
+        if (criteria[:version])
+          if criteria[:version].is_a?(VersionRange)
+            selected = selected.select {|b| criteria[:version].in_range(b.version)}
+          else
+            selected = selected.select {|b| b.version == criteria[:version]}
+          end
+        end
       end
       selected
     end

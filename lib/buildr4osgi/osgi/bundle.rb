@@ -16,6 +16,61 @@
 module OSGi #:nodoc:
 
   OSGI_GROUP_ID = "osgi"
+  
+  # :nodoc:
+  # Module extending projects
+  # to find which matches criterias used
+  # to find bundles.
+  #
+  module BundleProjectMatcher
+    
+    # Find if the project matches a specific set of criteria passed as parameter
+    # The criteria are tested against the manifest of the project, using its bundle packages manifest options and the MANIFEST.MF master file.
+    #
+    # Returns true if at least one of the packages defined by this project match the criteria.
+    #
+    def matches(criteria = {:name => "", :version => "", :exports_package => "", :fragment_for => ""})
+      if File.exists?(File.join(base_dir, "META-INF", "MANIFEST.MF"))
+        manifest = ::Buildr::Packaging::Java::Manifest.new(File.join(base_dir, "META-INF", "MANIFEST.MF")).main
+      end
+      manifest ||= {}
+      project.packages.select {|package| package.is_a? ::OSGi::BundlePackaging}.each {|p|
+        package_manifest = manifest.dup
+        package_manifest.merge!(p.manifest) if p.manifest
+        if criteria[:exports_package]
+          if criteria[:version]
+            matchdata = package_manifest[Bundle::B_EXPORT_PKG].match(/#{Regexp.escape(criteria[:exports_package])};version="(.*)"/) unless package_manifest[Bundle::B_EXPORT_PKG].nil?
+            return false unless matchdata
+            exported_package_version = matchdata[1] 
+            if criteria[:version].is_a? VersionRange
+              return criteria[:version].in_range(exported_package_version)
+            else
+              return criteria[:version] == exported_package_version
+            end
+          else
+            return false if package_manifest[Bundle::B_EXPORT_PKG].nil?
+            result = !package_manifest[Bundle::B_EXPORT_PKG].match(/#{Regexp.escape(criteria[:exports_package])}[;|,]/).nil?
+            result ||= !package_manifest[Bundle::B_EXPORT_PKG].match(/#{Regexp.escape(criteria[:exports_package])}$/).nil?
+            return result
+          end
+        elsif (package_manifest[Bundle::B_NAME] == criteria[:name] || id == criteria[:name])
+          
+          if criteria[:version]
+            if criteria[:version].is_a?(VersionRange)
+              return criteria[:version].in_range(version)
+            else
+              return criteria[:version] == version
+            end 
+          else
+            # depending just on the name, returning true then.
+            return true
+          end
+        end
+      }
+      return false
+    end
+    
+  end
 
   # A bundle is an OSGi artifact represented by a jar file or a folder.
   # It contains a manifest file with specific OSGi headers.
@@ -109,21 +164,22 @@ module OSGi #:nodoc:
       @group = OSGI_GROUP_ID
     end
 
+    
     #
     # Resolves the matching artifacts associated with the project.
     #
     def resolve_matching_artifacts(project)
-      if version.is_a? VersionRange
-        return project.osgi.registry.resolved_containers.collect {|i| 
-          i.find(:name => name).select {|b| version.in_range(b.version)}}.flatten.compact.collect{|b| b.dup }
-      elsif version.nil?
-        return project.osgi.registry.resolved_containers.collect {|i| 
-          i.find(:name => name)}.flatten.compact.collect{|b| b.dup }
-      else
-        project.osgi.registry.resolved_containers.collect {|i| 
+      # Collect the bundle projects, duplicate them so no changes can be applied to them
+      # and extend them with the BundleProjectMatcher module
+      b_projects = OSGi::BundleProjects::bundle_projects.select {|p| 
+        p.extend BundleProjectMatcher ; p.matches(:name => name, :version => version)
+      }
+      #projects take precedence over the dependencies elsewhere, that's what happens in Eclipse
+      # for example
+      return b_projects unless b_projects.empty?
+      return project.osgi.registry.resolved_containers.collect {|i| 
         i.find(:name => name, :version => version)
-        }.flatten.compact.collect{|b| b.dup }
-      end
+      }.flatten.compact.collect{|b| b.dup }
     end
 
     # Returns true if the bundle is an OSGi fragment.
@@ -149,18 +205,9 @@ module OSGi #:nodoc:
     end
 
     # Resolve a bundle from itself, by finding the appropriate bundle in the OSGi containers.
-    # Returns a new bundle.
+    # Returns self or the project it represents if a project is found to be self.
     #
     def resolve(project, bundles = resolve_matching_artifacts(project))
-      osgi = self.dup
-      nil if !osgi.resolve!(project, bundles)
-      osgi
-    end
-
-    # Resolve a bundle from itself, by finding the appropriate bundle in the OSGi containers.
-    # Returns self.
-    #
-    def resolve!(project, bundles = resolve_matching_artifacts(project))
       bundle = case bundles.size
       when 0 then nil
       when 1 then bundles.first
@@ -169,17 +216,20 @@ module OSGi #:nodoc:
       end
       if bundle.nil?
         warn "Could not resolve bundle for #{self.to_s}" 
-        return false
+        return nil
       end
-      @name = bundle.name
-      @version = bundle.version
-      @bundles = bundle.bundles
-      @file = bundle.file
-      @optional = bundle.optional
-      @start_level = bundle.start_level
-      @group = bundle.group
+      return bundle if bundle.is_a?(Buildr::Project)
+      
+      osgi = self.dup
+      osgi.name = bundle.name
+      osgi.version = bundle.version
+      osgi.bundles = bundle.bundles
+      osgi.file = bundle.file
+      osgi.optional = bundle.optional
+      osgi.start_level = bundle.start_level
+      osgi.group = bundle.group
 
-      true
+      osgi
     end
 
     # Finds the fragments associated with this bundle.
