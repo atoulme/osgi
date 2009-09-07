@@ -78,8 +78,20 @@ module OSGi
         collect(project)
         _dependencies[project.name] = bundles.sort #unless bundles.empty?
         _projects[project.name] = projects.collect {|p| p.name}.sort #unless projects.empty?
-        Buildr::write File.join(project.base_dir, "dependencies.yml"), 
-          {"dependencies" => _dependencies, "projects" => _projects}.to_yaml
+        
+        def find_root(project)
+          project.parent.nil? ? project : project.parent
+        end
+        
+        base_dir = find_root(project).base_dir
+        written_dependencies = YAML.load(File.read(File.join(base_dir, "dependencies.yml"))) if File.exists? File.join(base_dir, "dependencies.yml")
+        written_dependencies ||= {"dependencies" => {}, "projects" => {}}
+        
+        
+        Buildr::write File.join(base_dir, "dependencies.yml"), 
+          {"dependencies" => written_dependencies["dependencies"].merge(_dependencies), 
+            "projects" => written_dependencies["projects"].merge(_projects)
+          }.to_yaml
       end
     end
   end

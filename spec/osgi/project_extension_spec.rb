@@ -75,7 +75,7 @@ MANIFEST
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
   end
   
-  it "should use project as dependencies" do
+  it "should use projects as dependencies" do
     write "foo/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
@@ -96,7 +96,6 @@ MANIFEST
       end
     end
     project('container:foo').manifest_dependencies.should include(project('container:bar'))
-  
   end
   
   it 'should resolve dependencies with version requirements' do
@@ -283,6 +282,37 @@ MANIFEST
     end
     project('container').osgi.registry.containers = @eclipse_instances.dup
     project('container').dependencies
+    File.exist?('dependencies.yml').should be_true
+    deps = YAML::load(File.read('dependencies.yml'))
+    deps["projects"]["container:foo"].size.should == 1
+  end
+  
+  it 'should write a file named dependencies.yml with the projects required for the project' do
+    write "foo/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: bar
+MANIFEST
+    write "bar/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: bar
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude;bundle-version=3.5.0.R_20090512
+MANIFEST
+    define("container") do
+      project.version = "1.0"
+      project.group = "grp"
+      foo = define('foo') {
+      }
+      bar = define("bar") do
+        package(:bundle)
+      end
+    end
+    project('container').osgi.registry.containers = @eclipse_instances.dup
+    project('container:foo').dependencies
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["projects"]["container:foo"].size.should == 1
