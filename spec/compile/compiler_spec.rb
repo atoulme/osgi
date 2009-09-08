@@ -13,19 +13,15 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'buildr4osgi/nature'
-require 'buildr4osgi/osgi'
-require 'buildr4osgi/eclipse'
-require 'buildr4osgi/compile'
+require File.join(File.dirname(__FILE__), '../spec_helpers')
 
-# Methods defined in Buildr4OSGi are both instance methods (e.g. when included in Project)
-# and class methods when invoked like Buildr4OSGi.project_library(SLF4J, "group", "foo", "1.0.0").
-module Buildr4OSGi ; extend self ; end
-# The Buildfile object (self) has access to all the Buildr4OSGi methods and constants.
-class << self ; include Buildr4OSGi ; end
-class Object #:nodoc:
-  Buildr4OSGi.constants.each do |name|
-    const = Buildr4OSGi.const_get(name)
-    const_set name, const if const.is_a?(Module)
+describe Buildr4OSGi::Compiler::OSGiC do
+  it "should compile a Java project just in the same way javac does" do
+    
   end
+  
+  javac_spec = File.read(File.join(File.dirname(__FILE__), "..", "..", "buildr", "spec", "java", "compiler_spec.rb"))
+  javac_spec = javac_spec.match(Regexp.escape("require File.join(File.dirname(__FILE__), '../spec_helpers')\n")).post_match
+  javac_spec.gsub!("javac", "osgic")
+  eval(javac_spec)
 end

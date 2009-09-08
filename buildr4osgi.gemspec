@@ -37,4 +37,5 @@ TEXT
                           '--webcvs', 'http://github.com/intalio/buildr4osgi'
   spec.post_install_message = "To get started run buildr --help"
   spec.add_dependency("manifest", "= 0.0.4")
+  spec.add_dependency("jdtc", "= 0.0.1")
 end
