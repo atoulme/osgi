@@ -248,7 +248,7 @@ Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude;bundle-versi
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
-    foo.dependencies
+    foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["dependencies"]["foo"].size.should == 2
@@ -281,7 +281,7 @@ MANIFEST
       end
     end
     project('container').osgi.registry.containers = @eclipse_instances.dup
-    project('container').dependencies
+    project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["projects"]["container:foo"].size.should == 1
@@ -312,7 +312,7 @@ MANIFEST
       end
     end
     project('container').osgi.registry.containers = @eclipse_instances.dup
-    project('container:foo').dependencies
+    project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["projects"]["container:foo"].size.should == 1
@@ -343,8 +343,8 @@ MANIFEST
       end
     end
     project('container').osgi.registry.containers = @eclipse_instances.dup
-    project('container:foo').dependencies
-    project('container:bar').dependencies
+    project('container:foo').task('osgi:resolve:dependencies').invoke
+    project('container:bar').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["projects"]["container:foo"].size.should == 1
@@ -361,7 +361,7 @@ Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude
 MANIFEST
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
-    foo.dependencies
+    foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["dependencies"]["foo"].size.should == 2 # there should be 2 dependencies
@@ -392,7 +392,7 @@ Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
 MANIFEST
     }
     foo.osgi.registry.containers = [e2]
-    foo.dependencies
+    foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
     deps["dependencies"]["foo"].size.should == 1
@@ -424,7 +424,7 @@ Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
 MANIFEST
       }
       foo.osgi.registry.containers = [e2]
-      foo.dependencies
+      foo.task('osgi:resolve:dependencies').invoke
       File.exist?('dependencies.yml').should be_true
       deps = YAML::load(File.read('dependencies.yml'))
       

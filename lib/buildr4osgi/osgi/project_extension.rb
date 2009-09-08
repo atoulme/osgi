@@ -200,7 +200,8 @@ module OSGi
       end
       
       base_dir = find_root(project).base_dir
-      task('osgi:resolve:dependencies').enhance(&block).invoke if !(File.exists?(File.join(base_dir, "dependencies.yml")))
+      return [] unless File.exists?(File.join(base_dir, "dependencies.yml"))
+      
       dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
       if dependencies["dependencies"][project.name].nil?
         task('osgi:resolve:dependencies').enhance(&block).invoke

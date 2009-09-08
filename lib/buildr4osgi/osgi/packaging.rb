@@ -96,7 +96,8 @@ module OSGi
     # that define an OSGi bundle packaging.
     #
     def bundle_projects
-      Buildr.projects.select {|project|
+      
+      Buildr.projects.flatten.select {|project|
         !project.packages.select {|package| package.is_a? ::OSGi::BundlePackaging}.empty?
       }
     end
