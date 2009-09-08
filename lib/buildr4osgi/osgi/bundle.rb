@@ -153,7 +153,7 @@ module OSGi #:nodoc:
 
     def initialize(name, version, args = {:file => nil, :bundles=>[], :imports => [], :optional => false}) #:nodoc:
       @name = name
-      @version = VersionRange.parse(version) || (version.nil? ? nil : version.gsub(/\"/, ''))
+      @version = VersionRange.parse(version) || (version.nil? ? nil : Version.new(version))
       @bundles = args[:bundles] || []
       @imports = args[:imports] || []
       @exported_packages = args[:exported_packages] || []
