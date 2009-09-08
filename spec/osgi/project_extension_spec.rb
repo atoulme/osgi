@@ -98,7 +98,7 @@ MANIFEST
     project('container:foo').manifest_dependencies.should include(project('container:bar'))
   end
   
-  it "should use projects as dependencies" do
+  it "should use projects as dependencies, even if those are libraries projects" do
     write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
@@ -112,6 +112,13 @@ MANIFEST
       project.group = "grp"
       
     end
+    project('foo').manifest_dependencies.should include(project('bar'))
+  end
+  
+  it "should let library projects depend on each other" do
+    library_project(DEBUG_UI, "grp", "bar", "1.0")
+    library_project(SLF4J, "grp", "foo", "1.1", :manifest => {"Require-Bundle" => "bar"})
+    
     project('foo').manifest_dependencies.should include(project('bar'))
   end
   
