@@ -78,7 +78,7 @@ module OSGi #:nodoc:
           project.version = "#{version}"
           project.group = "#{group}"
 
-          package(:jar).tap {|jar|
+          package(:bundle).tap {|jar|
             jar.enhance {|task|
               walk_libs(#{deps_as_str}) {|lib|
                 lib.invoke # make sure the artifact is present.
