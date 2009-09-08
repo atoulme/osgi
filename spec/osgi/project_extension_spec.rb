@@ -318,6 +318,39 @@ MANIFEST
     deps["projects"]["container:foo"].size.should == 1
   end
   
+  it 'should write a file named dependencies.yml and merge it as needed' do
+    write "foo/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: bar
+MANIFEST
+    write "bar/META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: bar
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude;bundle-version=3.5.0.R_20090512
+MANIFEST
+    define("container") do
+      project.version = "1.0"
+      project.group = "grp"
+      foo = define('foo') {
+      }
+      bar = define("bar") do
+        package(:bundle)
+      end
+    end
+    project('container').osgi.registry.containers = @eclipse_instances.dup
+    project('container:foo').dependencies
+    project('container:bar').dependencies
+    File.exist?('dependencies.yml').should be_true
+    deps = YAML::load(File.read('dependencies.yml'))
+    deps["projects"]["container:foo"].size.should == 1
+    deps["dependencies"]["container:bar"].size.should == 2
+  end
+  
   it 'should give a version to the dependency even if none is specified' do
     foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0

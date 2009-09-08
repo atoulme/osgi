@@ -71,13 +71,13 @@ module OSGi
         _projects = {}
         project.projects.each do |subp|
           collect(subp)
-          _projects[subp.name] = projects.collect {|p| p.name}.sort #unless projects.empty?
-          _dependencies[subp.name] = bundles.sort #unless bundles.empty?
+          _projects[subp.name] = projects.collect {|p| p.name}.sort 
+          _dependencies[subp.name] = bundles.sort 
         end
         
         collect(project)
-        _dependencies[project.name] = bundles.sort #unless bundles.empty?
-        _projects[project.name] = projects.collect {|p| p.name}.sort #unless projects.empty?
+        _dependencies[project.name] = bundles.sort
+        _projects[project.name] = projects.collect {|p| p.name}.sort
         
         def find_root(project)
           project.parent.nil? ? project : project.parent
@@ -86,7 +86,6 @@ module OSGi
         base_dir = find_root(project).base_dir
         written_dependencies = YAML.load(File.read(File.join(base_dir, "dependencies.yml"))) if File.exists? File.join(base_dir, "dependencies.yml")
         written_dependencies ||= {"dependencies" => {}, "projects" => {}}
-        
         
         Buildr::write File.join(base_dir, "dependencies.yml"), 
           {"dependencies" => written_dependencies["dependencies"].merge(_dependencies), 
@@ -203,9 +202,13 @@ module OSGi
       base_dir = find_root(project).base_dir
       task('osgi:resolve:dependencies').enhance(&block).invoke if !(File.exists?(File.join(base_dir, "dependencies.yml")))
       dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
+      if dependencies["dependencies"][project.name].nil?
+        task('osgi:resolve:dependencies').enhance(&block).invoke
+        dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
+      end
       names = [project.name] + project.projects.collect {|p| p.name}
       return (dependencies["dependencies"].collect {|key, value| value if names.include? key} + 
-          dependencies["projects"].collect {|key, value| value.collect {|p| project(p) } if names.include? key}).flatten.compact.uniq
+          dependencies["projects"].collect {|key, value| value.collect {|p| [project(p), dependencies["dependencies"][p]] } if names.include? key}).flatten.compact.uniq
     end
 
     class OSGi #:nodoc:
