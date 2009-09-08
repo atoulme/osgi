@@ -98,6 +98,23 @@ MANIFEST
     project('container:foo').manifest_dependencies.should include(project('container:bar'))
   end
   
+  it "should use projects as dependencies" do
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.osgi.something; singleton:=true
+Bundle-Version: 3.9.9.R_20081204
+Require-Bundle: bar
+MANIFEST
+    library_project(SLF4J, "grp", "bar", "1.1")
+    define('foo') do
+      project.version = "1.0"
+      project.group = "grp"
+      
+    end
+    project('foo').manifest_dependencies.should include(project('bar'))
+  end
+  
   it 'should resolve dependencies with version requirements' do
     foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
