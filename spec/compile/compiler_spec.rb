@@ -15,7 +15,7 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
-describe Buildr4OSGi::Compiler::OSGiC do
+describe Buildr4OSGi::CompilerSupport::OSGiC do
   it "should compile a Java project just in the same way javac does" do
     
   end

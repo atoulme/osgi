@@ -14,7 +14,7 @@
 # the License.
 
 module Buildr4OSGi
-  module Compiler
+  module CompilerSupport
     class OSGiC < Buildr::Compiler::Javac
       require "jdtc"
       include Jdtc
@@ -47,4 +47,4 @@ module Buildr4OSGi
   end
 end
 
-Buildr::Compiler.compilers.unshift Buildr4OSGi::Compiler::OSGiC
+Buildr::Compiler.compilers.unshift Buildr4OSGi::CompilerSupport::OSGiC
