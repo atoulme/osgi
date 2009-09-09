@@ -109,10 +109,13 @@ module OSGi
       enhance do |task|
         dependencies = []
         project.projects.each do |subp|
-          dependencies |= collect(subp)
+          collect(subp)
+          dependencies |= bundles
         end
-        dependencies |= collect(project)
+        collect(project)
+        dependencies |= bundles
         dependencies.flatten.uniq.sort.each {|bundle|
+          
           begin
             if File.directory?(bundle.file)
               begin
