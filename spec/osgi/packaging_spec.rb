@@ -211,7 +211,9 @@ PLUGIN_PROPERTIES
     Buildr::write "customsrc/main/java/org/thing/Hello.java", ""
     Buildr::write "bin/org/thing/Hello.class", ""
     foo = define("foo", :version => "1.0.0") do
-      compile.using :target=>'1.5'
+      compile.options.source = "1.5"
+      compile.options.target = "1.5"
+      
       package(:plugin).manifest["Bundle-Version"] = "2.0.0"   
     end
     foo.compile.invoke

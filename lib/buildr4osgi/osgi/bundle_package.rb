@@ -62,6 +62,17 @@ module OSGi #:nodoc:
     def to_s #:nodoc:
       "Package #{name}; version #{version}"
     end
+    
+    # We just test the name and version as we want to be able to see if an unresolved package and a resolved one represent the same
+    # bundle package.
+    def ==(other)
+      return false unless other.is_a? BundlePackage
+      eql = name == other.name
+      eql |= version.nil? ? other.version.nil? : version == other.version
+      eql
+    end
+    
+    alias :eql? :==
   end
   
 end

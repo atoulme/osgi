@@ -67,6 +67,77 @@ MANIFEST
   
 end
 
+describe OSGi::Bundle, "fromProject" do
+  it "should raise an exception if more than one bundle packaging is defined over the same project as it is not supported yet (BOSGI-16)" do
+    foo = define "foo", :version => "1.0" do 
+      package(:bundle) 
+      package(:bundle, :file => "file.jar").with :manifest => {"Require-Bundle" => "some stuff"} 
+    end
+    lambda {OSGi::Bundle.fromProject(foo)}.should raise_error(RuntimeError, 
+      /More than one bundle packaging is defined over the project .*, see BOSGI-16./)
+  end
+  
+  it "should return nil if no bundle packaging is defined in the project" do
+    foo = define "foo"
+    OSGi::Bundle.fromProject(foo).should be_nil
+  end
+  
+  it "should use the values placed in the META-INF/MANIFEST.MF file of the project" do
+    manifest = <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.1.R_20090912
+Bundle-ActivationPolicy: Lazy
+MANIFEST
+    Buildr::write "META-INF/MANIFEST.MF", manifest
+    foo = define "foo", :version => "1.0" do
+      project.group = "grp"
+      package(:bundle)
+    end
+    bundle = OSGi::Bundle.fromProject(foo)
+    bundle.lazy_start.should be_true
+  end
+  
+  it "should use the manifest defined over the bundle packaging of the project" do
+    foo = define "foo", :version => "1.0" do
+      project.group = "grp"
+      package(:bundle).with :manifest => {"Export-Package" => "p1,p2"}
+    end
+    bundle = ::OSGi::Bundle.fromProject(foo)
+    bundle.exported_packages.should include(OSGi::BundlePackage.new("p1", nil))
+  end
+  
+  it "should use the id of the project as the name of the bundle if none is defined" do
+    foo = define "foo", :version => "1.0" do
+      project.group = "grp"
+      package(:bundle)
+    end
+    bundle = OSGi::Bundle.fromProject(foo)
+    bundle.name.should == "foo"
+    bundle.version.should == "1.0"
+  end
+  
+  it "should use the values placed in the manifest, merged with those defined in the bundle packaging" do
+    manifest = <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
+Bundle-Version: 3.5.1.R_20090912
+Bundle-ActivationPolicy: Lazy
+MANIFEST
+    Buildr::write "META-INF/MANIFEST.MF", manifest
+    foo = define "foo", :version => "1.0" do
+      project.group = "grp"
+      package(:bundle).with :manifest => {"Require-Bundle" => "org.apache.smthg;bundle-version=\"1.5.0\""}
+    end
+    bundle = OSGi::Bundle.fromProject(foo)
+    bundle.name.should == "foo"
+    bundle.version.should == "1.0"
+    bundle.bundles.should include(OSGi::Bundle.new("org.apache.smthg", OSGi::Version.new("1.5.0")))
+  end
+end 
+
 describe "fragments" do
   before :all do
     manifest = <<-MANIFEST

@@ -251,10 +251,10 @@ module OSGi
     
     # returns an array of the dependencies of the plugin, read from the manifest.
     def manifest_dependencies()
-      return [] unless File.exists?("#{base_dir}/META-INF/MANIFEST.MF")
-      as_bundle = Bundle.fromManifest(Manifest.read(File.read(File.join(project.base_dir, "META-INF/MANIFEST.MF"))), project.name)
-      as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve(project)}.compact + as_bundle.imports.collect {|i| i.resolve(project)}.flatten
+      as_bundle = Bundle.fromProject(self)
+      as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve(self)}.compact + as_bundle.imports.collect {|i| i.resolve(self)}.flatten
     end
+    
   end
 end
 

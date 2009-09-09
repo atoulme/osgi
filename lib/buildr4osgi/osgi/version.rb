@@ -90,7 +90,7 @@ module OSGi #:nodoc:
     # Returns false if the string could not be parsed.
     #
     def self.parse(string, max_infinite = false)
-      return string if string.is_a?(VersionRange)
+      return string if string.is_a?(VersionRange) || string.is_a?(Version)
       if !string.nil? && (match = string.match /\s*([\[|\(])([0-9|\.]*),([0-9|\.]*)([\]|\)])/)
         range = VersionRange.new
         range.min = Version.new(match[2])

@@ -23,4 +23,10 @@ describe OSGi::BundlePackage do
     package.to_s.should == "Package my.package; version [1.0.0,infinite)"
     package2.to_s.should == "Package my.package; version [1.0.0,2.0.0]"
   end
+  
+  it 'should be able to know if it equals another bundle package' do
+    package = OSGi::BundlePackage.new("my.package", "1.0.0")
+    package2 = OSGi::BundlePackage.new("my.package", "1.0.0")
+    package.eql?(package2).should be_true
+  end
 end

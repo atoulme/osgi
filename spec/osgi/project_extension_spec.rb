@@ -63,13 +63,15 @@ MANIFEST
   end
 
   it 'should resolve dependencies' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: com.ibm.icu,org.eclipse.core.resources
 MANIFEST
+    foo = define('foo', :version=> "1.0", :group => "grp" ) {
+      package(:bundle)
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
@@ -90,7 +92,9 @@ Bundle-SymbolicName: bar
 MANIFEST
     define('container') do
       project.version = "1.0"
-      define('foo')
+      define('foo') do
+        package(:bundle)
+      end
       define('bar') do
         package(:bundle)
       end
@@ -110,7 +114,7 @@ MANIFEST
     define('foo') do
       project.version = "1.0"
       project.group = "grp"
-      
+      package(:bundle)
     end
     project('foo').manifest_dependencies.should include(project('bar'))
   end
@@ -123,13 +127,15 @@ MANIFEST
   end
   
   it 'should resolve dependencies with version requirements' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.eclipse.core.resources;bundle-version=3.5.0.R_20090512
 MANIFEST
+    foo = define('foo', :version => "1.0", :group => "grp") {
+      package(:bundle)
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
@@ -153,7 +159,9 @@ MANIFEST
     define('container') do
       project.version = "1.1"
       
-      define('foo')
+      define('foo') do
+        package(:bundle)
+      end
       define('bar') do
         package(:bundle)
       end
@@ -164,13 +172,15 @@ MANIFEST
   end
   
   it 'should resolve dependencies with package imports' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Import-Package: my.package
 MANIFEST
+    foo = define('foo', :version => "1.0", :group => "grp") {
+      package(:bundle)
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
@@ -199,7 +209,9 @@ MANIFEST
     define('container') do
       project.version = "1.1"
       
-      define('foo')
+      define('foo') do
+        package(:bundle)
+      end
       define('bar') do
         package(:bundle)
       end
@@ -213,13 +225,15 @@ MANIFEST
   end
   
   it 'should resolve dependencies with package imports with version requirements' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Import-Package: my.package;version="0.9.0"
 MANIFEST
+    foo = define('foo', :version => "1.0", :group => "grp") {
+      package(:bundle)
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
@@ -248,7 +262,9 @@ MANIFEST
     define('container') do
       project.version = "1.1"
       
-      define('foo')
+      define('foo') do
+        package(:bundle)
+      end
       define('bar') do
         package(:bundle)
       end
@@ -263,13 +279,15 @@ MANIFEST
   end
   
   it 'should write a file named dependencies.yml with the dependencies of the project' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude;bundle-version=3.5.0.R_20090512
 MANIFEST
+    foo = define('foo', :version => "1.0", :group => "grp") {
+      package(:bundle)
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.task('osgi:resolve:dependencies').invoke
@@ -299,6 +317,7 @@ MANIFEST
       project.version = "1.0"
       project.group = "grp"
       foo = define('foo') {
+        package(:bundle)
       }
       bar = define("bar") do
         package(:bundle)
@@ -330,6 +349,7 @@ MANIFEST
       project.version = "1.0"
       project.group = "grp"
       foo = define('foo') {
+        package(:bundle)
       }
       bar = define("bar") do
         package(:bundle)
@@ -361,6 +381,7 @@ MANIFEST
       project.version = "1.0"
       project.group = "grp"
       foo = define('foo') {
+        package(:bundle)
       }
       bar = define("bar") do
         package(:bundle)
@@ -376,13 +397,15 @@ MANIFEST
   end
   
   it 'should give a version to the dependency even if none is specified' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: com.ibm.icu;bundle-version="[3.3.0,4.0.0)",org.dude
 MANIFEST
+    foo = define('foo', :version => "1.0", :group => "grp") {
+      package(:bundle)
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.task('osgi:resolve:dependencies').invoke
@@ -407,13 +430,15 @@ Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.1.R_20090512
 MANIFEST
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
 MANIFEST
+    foo = define('foo', :version => "1.0", :group => "grp") {
+      package(:bundle)
     }
     foo.osgi.registry.containers = [e2]
     foo.task('osgi:resolve:dependencies').invoke
@@ -439,13 +464,15 @@ Require-Bundle: org.eclipse.core.resources2
 Bundle-SymbolicName: org.eclipse.core.resources; singleton:=true
 Bundle-Version: 3.5.1.R_20090512
 MANIFEST
-      foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+      write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: org.eclipse.core.resources;bundle-version="[3.3.0,3.5.2)"
 MANIFEST
+      foo = define('foo', :version => "1.0", :group => "grp") {
+        package(:bundle)
       }
       foo.osgi.registry.containers = [e2]
       foo.task('osgi:resolve:dependencies').invoke
@@ -476,13 +503,15 @@ MANIFEST
   end
   
   it 'should install the dependencies into the local Maven repository' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: org.eclipse.debug.ui
 MANIFEST
+    foo = define('foo', :version => "1.0", :group => "grp") {
+      package(:bundle)
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     foo.dependencies
@@ -501,7 +530,7 @@ Require-Bundle: org.eclipse.debug.ui,
  org.eclipse.core.resources;bundle-version=3.5.1.R_20090512,
  org.eclipse.core.runtime.compatibility.registry
 MANIFEST
-    foo = define('foo')
+    foo = define('foo', :version => "1.0", :group => "grp") do package(:bundle) end
     foo.osgi.registry.containers = @eclipse_instances.dup
     
     foo.task('osgi:resolve:dependencies').invoke
@@ -519,13 +548,15 @@ MANIFEST
   end
   
   it 'should upload dependencies to the releasing repository' do
-    foo = define('foo') {write "META-INF/MANIFEST.MF", <<-MANIFEST
+    write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
 Require-Bundle: org.eclipse.debug.ui,org.eclipse.core.resources
 MANIFEST
+    foo = define('foo', :version => "1.0", :group => "grp") {
+      package(:bundle)
     }
     foo.osgi.registry.containers = @eclipse_instances.dup
     repositories.release_to = 'sftp://example.com/base'

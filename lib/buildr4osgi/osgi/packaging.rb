@@ -25,6 +25,7 @@ module OSGi
   module BundlePackaging
     
   end
+    
   
   #
   # The task to package a project
@@ -43,8 +44,8 @@ module OSGi
           artifacts = Buildr.artifacts(@libs)
           path('lib').include artifacts
           manifest["Bundle-Classpath"] = [".", artifacts.collect {|a| "lib/#{File.basename(a.to_s)}"}].flatten.join(",")
+          
         end
-        
       end
     end
     
@@ -54,6 +55,13 @@ module OSGi
     include Extension
     
     protected
+    
+    # returns true if the project defines at least one bundle packaging.
+    # We keep this method protected and we will call it using send.
+    def is_packaging_osgi_bundle()
+      packages.each {|package| return true if package.is_a?(::OSGi::BundlePackaging)}
+      return false
+    end
     
     def package_as_bundle(file_name)
       task = BundleTask.define_task(file_name).tap do |plugin|
@@ -71,14 +79,14 @@ module OSGi
         p_r.exclude("target/**").exclude("target")
         
         manifest_location = File.join(project.base_dir, "META-INF", "MANIFEST.MF")
+        manifest = project.manifest
         if File.exists?(manifest_location)
           read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read(manifest_location)).main
-          project.manifest = read_m.merge(project.manifest)
+          manifest = project.manifest.merge(read_m)
         end
-        manifest = {"Bundle-Version" => project.version, 
-                    "Bundle-SymbolicName" => project.id, 
-                    "Bundle-Name" => project.comment || project.name}.merge project.manifest
-        manifest["Bundle-Version"] = project.version         
+        manifest["Bundle-Version"] = project.version # the version of the bundle packaged is ALWAYS the version of the project.
+        manifest["Bundle-SymbolicName"] ||= project.id # if it was resetted to nil, we force the id to be added back.
+        
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
         plugin.with [compile.target, resources.target, p_r.target].compact
       end
@@ -88,6 +96,11 @@ module OSGi
       spec.merge(:type=>:jar)
     end
     
+    before_define do |project|
+      project.manifest["Bundle-SymbolicName"] = project.id
+      project.manifest["Bundle-Name"] = project.comment || project.name
+      project.manifest["Bundle-Version"] = project.version
+    end
   end
   
   module BundleProjects #:nodoc
@@ -98,7 +111,7 @@ module OSGi
     def bundle_projects
       
       Buildr.projects.flatten.select {|project|
-        !project.packages.select {|package| package.is_a? ::OSGi::BundlePackaging}.empty?
+        project.send :is_packaging_osgi_bundle
       }
     end
     

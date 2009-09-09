@@ -19,12 +19,12 @@ describe OSGi::BuildLibraries do
   
   it 'should merge with the jars of the libraries' do
     library_project(SLF4J, "group", "foo", "1.0.0")
+    
     foo = project("foo")
-    lambda {foo.package(:jar).invoke}.should_not raise_error
+    lambda {foo.package(:bundle).invoke}.should_not raise_error
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
-      zip.entries.size.should == 45
       zip.find_entry("org/slf4j/Marker.class").should_not be_nil  
     }
   end
@@ -32,7 +32,7 @@ describe OSGi::BuildLibraries do
   it 'should let users decide filters for exclusion when merging libraries' do
     library_project(SLF4J, "group", "foo", "1.0.0", :exclude => "org/slf4j/spi/*")
     foo = project("foo")
-    lambda {foo.package(:jar).invoke}.should_not raise_error
+    lambda {foo.package(:bundle).invoke}.should_not raise_error
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
@@ -41,7 +41,7 @@ describe OSGi::BuildLibraries do
     }
     library_project(SLF4J, "group", "bar", "1.0.0", :include => ["org/slf4j/spi/MarkerFactoryBinder.class", "META-INF/*"])
     bar = project("bar")
-    lambda {bar.package(:jar).invoke}.should_not raise_error
+    lambda {bar.package(:bundle).invoke}.should_not raise_error
     jar = File.join(bar.base_dir, "target", "bar-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
@@ -54,7 +54,7 @@ describe OSGi::BuildLibraries do
   it 'should show the exported packages (the non-empty ones) under the Export-Package header in the manifest' do
     library_project(SLF4J, "group", "foo", "1.0.0")
     foo = project("foo")
-    lambda {foo.package(:jar).invoke}.should_not raise_error
+    lambda {foo.package(:bundle).invoke}.should_not raise_error
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
@@ -90,7 +90,7 @@ describe OSGi::BuildLibraries do
   it "should let the user specify manifest headers" do
     library_project(SLF4J, "group", "foo", "1.0.0", :manifest => {"Require-Bundle" => "org.bundle", "Some-Header" => "u1,u2"})
     foo = project("foo")
-    foo.package(:jar).invoke
+    foo.package(:bundle).invoke
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|

@@ -90,6 +90,18 @@ module OSGi #:nodoc:
     B_LAZY_START = "Bundle-ActivationPolicy"
     B_OLD_LAZY_START = "Eclipse-LazyStart"
     
+    # Creates a bundle out of a project, using the manifest defined in its bundle package
+    # and the MANIFEST.MF file present in the project if any.
+    def self.fromProject(project)
+      packaging = project.packages.select {|package| package.is_a?(::OSGi::BundlePackaging)}
+      raise "More than one bundle packaging is defined over the project #{project.id}, see BOSGI-16." if packaging.size > 1
+      return nil if packaging.empty?
+      manifest = ::Buildr::Packaging::Java::Manifest.new(File.exists?("META-INF/MANIFEST.MF") ? File.read("META-INF/MANIFEST.MF") : nil) 
+      manifest.main.merge!(project.manifest)
+      manifest.main.merge!(packaging.first.manifest)
+      fromManifest(Manifest.read(manifest.to_s), packaging.first.to_s)
+    end
+    
     # Creates itself by loading from the manifest file passed to it as a hash
     # Finds the name and version, and populates a list of dependencies.
     def self.fromManifest(manifest, jarFile) 
@@ -171,6 +183,7 @@ module OSGi #:nodoc:
     def resolve_matching_artifacts(project)
       # Collect the bundle projects, duplicate them so no changes can be applied to them
       # and extend them with the BundleProjectMatcher module
+      
       b_projects = OSGi::BundleProjects::bundle_projects.select {|p| 
         p.extend BundleProjectMatcher ; p.matches(:name => name, :version => version)
       }
@@ -248,10 +261,13 @@ module OSGi #:nodoc:
         }.flatten.compact.collect{|b| b.dup }
       end
       
-      def ==(other) #:nodoc:
-        return false unless other.is_a?(Bundle)
-        name == other.name && version == other.version    
-      end
-
+    # Compares with another bundle and returns true if the name and version match.  
+    def ==(other) #:nodoc:
+      return false unless other.is_a?(Bundle)
+      name == other.name && version == other.version    
     end
+    
+    alias :eql? ==
+
   end
+end
