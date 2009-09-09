@@ -33,11 +33,13 @@ module OSGi #:nodoc:
     # Resolves the matching artifacts associated with the project.
     #
     def resolve_matching_artifacts(project)
-      # Collect the bundle projects, duplicate them so no changes can be applied to them
+      # Collect the bundle projects
       # and extend them with the BundleProjectMatcher module
       b_projects = OSGi::BundleProjects::bundle_projects.select {|p|
-        p.extend OSGi::BundleProjectMatcher 
-        p.matches(:exports_package => name, :version => version)
+        unless p == project
+          p.extend OSGi::BundleProjectMatcher 
+          p.matches(:exports_package => name, :version => version)
+        end
       }
       return b_projects unless b_projects.empty?
       

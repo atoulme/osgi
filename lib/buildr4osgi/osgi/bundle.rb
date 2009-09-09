@@ -184,8 +184,11 @@ module OSGi #:nodoc:
       # Collect the bundle projects, duplicate them so no changes can be applied to them
       # and extend them with the BundleProjectMatcher module
       
-      b_projects = OSGi::BundleProjects::bundle_projects.select {|p| 
-        p.extend BundleProjectMatcher ; p.matches(:name => name, :version => version)
+      b_projects = OSGi::BundleProjects::bundle_projects.select {|p|
+        unless p == project
+          p.extend BundleProjectMatcher
+          p.matches(:name => name, :version => version)
+        end
       }
       #projects take precedence over the dependencies elsewhere, that's what happens in Eclipse
       # for example

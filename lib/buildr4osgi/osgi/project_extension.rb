@@ -35,7 +35,9 @@ module OSGi
       if bundle.is_a?(Bundle)
         bundle = bundle.resolve(project)
         unless bundle.nil?
-          if !(@bundles.include? bundle)
+          if bundle.is_a?(Buildr::Project)
+            @projects << bundle
+          elsif !(@bundles.include? bundle)
             @bundles << bundle
             @bundles |= bundle.fragments(project)       
             (bundle.bundles + bundle.imports).each {|b|
@@ -45,7 +47,9 @@ module OSGi
         end
       elsif bundle.is_a?(BundlePackage)
         bundle.resolve(project).each {|b| 
-          if !(@bundles.include? b)
+          if b.is_a?(Buildr::Project)
+            @projects << b
+          elsif !(@bundles.include? b)
             @bundles << b
             (b.bundles + b.imports).each {|import|
               _collect(import, project)  
@@ -71,13 +75,13 @@ module OSGi
         _projects = {}
         project.projects.each do |subp|
           collect(subp)
-          _projects[subp.name] = projects.collect {|p| p.name}.sort 
+          _projects[subp.id] = projects.collect {|p| p.id}.uniq.sort
           _dependencies[subp.name] = bundles.sort 
         end
         
         collect(project)
         _dependencies[project.name] = bundles.sort
-        _projects[project.name] = projects.collect {|p| p.name}.sort
+        _projects[project.id] = projects.collect {|p| p.id}.uniq.sort
         
         def find_root(project)
           project.parent.nil? ? project : project.parent
@@ -190,8 +194,10 @@ module OSGi
     end
 
     #
-    # Calls the osgi:resolve:dependencies task if no dependencies.yml file is present.
-    # Then reads the dependencies from dependencies.yml
+    # 
+    # Reads the dependencies from dependencies.yml
+    # and returns the direct dependencies of the project, as well as its project dependencies and their own dependencies.
+    # This method is used recursively, so beware of cyclic dependencies.
     #
     def dependencies(&block)
       
@@ -207,9 +213,11 @@ module OSGi
         task('osgi:resolve:dependencies').enhance(&block).invoke
         dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
       end
-      names = [project.name] + project.projects.collect {|p| p.name}
-      return (dependencies["dependencies"].collect {|key, value| value if names.include? key} + 
-          dependencies["projects"].collect {|key, value| value.collect {|p| [project(p), dependencies["dependencies"][p]] } if names.include? key}).flatten.compact.uniq
+      
+      
+      return (dependencies["dependencies"].collect {|key, value| value if key == project.name} + 
+          dependencies["projects"].collect {|key, value| value.collect {|p| p p ; [project(p), project(p).dependencies] } if key == project.name}
+             ).flatten.compact.uniq
     end
 
     class OSGi #:nodoc:
