@@ -251,9 +251,6 @@ PROPERTIES
     def package_as_feature(file_name)
       task = FeatureTask.define_task(file_name)
       task.extend FeatureWriter
-      task.tap do |feature|
-        feature.with :manifest=>manifest, :meta_inf=>meta_inf
-      end
       task.enhance do |feature|
         feature.generateFeature(project)
       end

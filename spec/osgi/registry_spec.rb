@@ -16,14 +16,18 @@
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
 describe OSGi::Registry do
+
+  it 'should be possible to set containers from the Buildr settings' do
+    yaml = {"osgi" => ({"containers" => ["myContainer"]})}
+    write 'home/.buildr/settings.yaml', yaml.to_yaml
+    define("foo").osgi.registry.containers.should == ["myContainer"]
+  end
   
   it 'should be accessible from a project' do
     define('foo').osgi.registry.should be_instance_of(OSGi::Registry)
   end
   
-  it 'should be possible to set containers from the Buildr settings' do
-    pending "Need to know how to fake buildr settings"
-  end
+  
   
   it 'should be possible to set the containers from the OSGi environment variables' do
     ENV['OSGi'] = "foo;bar"

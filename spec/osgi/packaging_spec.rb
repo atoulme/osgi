@@ -15,6 +15,10 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
+Spec::Runner.configure do |config|
+  config.include Buildr4OSGi::SpecHelpers
+end
+
 describe OSGi::BundleTask do
   
   def define_project

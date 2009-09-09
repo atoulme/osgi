@@ -15,6 +15,10 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
+Spec::Runner.configure do |config|
+  config.include Buildr4OSGi::SpecHelpers
+end
+
 describe OSGi::ProjectExtension do
   
   it 'should give a way to take project dependencies' do
@@ -327,7 +331,7 @@ MANIFEST
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["projects"]["container:foo"].size.should == 1
+    deps["projects"]["container-foo"].size.should == 1
   end
   
   it 'should write a file named dependencies.yml with the projects required for the project' do
@@ -359,7 +363,7 @@ MANIFEST
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["projects"]["container:foo"].size.should == 1
+    deps["projects"]["container-foo"].size.should == 1
   end
   
   it 'should write a file named dependencies.yml and merge it as needed' do
@@ -392,8 +396,8 @@ MANIFEST
     project('container:bar').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["projects"]["container:foo"].size.should == 1
-    deps["dependencies"]["container:bar"].size.should == 2
+    deps["projects"]["container-foo"].size.should == 1
+    deps["dependencies"]["container-bar"].size.should == 2
   end
   
   it 'should give a version to the dependency even if none is specified' do

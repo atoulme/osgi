@@ -45,6 +45,18 @@ unless defined?(SpecHelpers)
 
     OSGi_REPOS = File.expand_path File.join(File.dirname(__FILE__), "..", "tmp", "osgi")
 
+    class << self
+
+      def included(config)
+        config.before(:each) {
+          remoteRepositoryForHelpers()
+        }
+        config.after(:all) {
+          FileUtils.rm_rf Buildr4OSGi::SpecHelpers::OSGi_REPOS
+        }
+      end
+    end
+    
     def createRepository(name)
       repo = File.join(OSGi_REPOS, name)
       mkpath repo
@@ -59,14 +71,9 @@ unless defined?(SpecHelpers)
   end
   
   Spec::Runner.configure do |config|
-    config.include Buildr4OSGi::SpecHelpers, Buildr4OSGi
+    config.include Buildr4OSGi
     
-    config.before(:each) {
-      remoteRepositoryForHelpers()
-    }
-    config.after(:all) {
-      FileUtils.rm_rf Buildr4OSGi::SpecHelpers::OSGi_REPOS
-    }
+    
   end
 
 end

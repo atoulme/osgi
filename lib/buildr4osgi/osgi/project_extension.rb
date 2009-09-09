@@ -76,11 +76,11 @@ module OSGi
         project.projects.each do |subp|
           collect(subp)
           _projects[subp.id] = projects.collect {|p| p.id}.uniq.sort
-          _dependencies[subp.name] = bundles.sort 
+          _dependencies[subp.id] = bundles.sort 
         end
         
         collect(project)
-        _dependencies[project.name] = bundles.sort
+        _dependencies[project.id] = bundles.sort
         _projects[project.id] = projects.collect {|p| p.id}.uniq.sort
         
         def find_root(project)
