@@ -16,9 +16,8 @@
 module Buildr4OSGi
   module CompilerSupport
     class OSGiC < Buildr::Compiler::Javac
-      require "jdtc"
-      include Jdtc
       
+      CURRENT_JDT_COMPILER = '3.4.1'
       OPTIONS = [:warnings, :debug, :deprecation, :source, :target, :lint, :other]
     
       specify :language=>:java, :sources => 'java', :source_ext => 'java',
@@ -38,13 +37,18 @@ module Buildr4OSGi
         cmd_args += files_from_sources(sources)
         unless Buildr.application.options.dryrun
           trace((['osgic'] + cmd_args).join(' '))
-          jdtc(cmd_args)
+          Java.load
+          Java.org.eclipse.jdt.internal.compiler.batch.Main.main(cmd_args.
+            to_java(Java.java.lang.String)) == 0 or fail 'Failed to compile, see errors above'
         end
       end
       alias :osgic_args :javac_args 
+      
     end
     
   end
 end
+
+Java.classpath << File.expand_path(File.join(File.dirname(__FILE__), "ecj-#{Buildr4OSGi::CompilerSupport::OSGiC::CURRENT_JDT_COMPILER}.jar"))
 
 Buildr::Compiler.compilers.unshift Buildr4OSGi::CompilerSupport::OSGiC
