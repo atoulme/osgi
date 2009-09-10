@@ -212,14 +212,14 @@ module OSGi
       return [] unless File.exists?(File.join(base_dir, "dependencies.yml"))
       
       dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
-      if dependencies["dependencies"][project.name].nil?
+      if dependencies["dependencies"][project.id].nil?
         task('osgi:resolve:dependencies').enhance(&block).invoke
         dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
       end
       
       
-      return (dependencies["dependencies"].collect {|key, value| value if key == project.name} + 
-          dependencies["projects"].collect {|key, value| value.collect {|p| p p ; [project(p), project(p).dependencies] } if key == project.name}
+      return (dependencies["dependencies"].collect {|key, value| value if key == project.id} + 
+          dependencies["projects"].collect {|key, value| value.collect {|p| p p ; [project(p), project(p).dependencies] } if key == project.id}
              ).flatten.compact.uniq
     end
 
