@@ -73,6 +73,27 @@ module Buildr4OSGi #:nodoc:
         warn "Failed to download the sources #{to_spec}, tried the following repositories:\n#{remote_uris.join("\n")}"
       end
     end
+    
+    #
+    # Returns the main section of the manifest of the bundle.
+    #
+    def manifest(lib)
+      artifact = Buildr.artifact(lib)
+      artifact.invoke # download it if needed.
+      
+      m = nil
+      Zip::ZipFile.open(artifact.to_s) do |zip|
+        raise "No manifest contained in #{lib}" if zip.find_entry("META-INF/MANIFEST.MF").nil?
+        m = zip.read("META-INF/MANIFEST.MF")
+      end
+      manifest = ::Buildr::Packaging::Java::Manifest.new(m)
+      manifest.main
+    end
+  end
+  
+  module LibraryProjectExtension
+    include Extension
+    
     #
     #
     # Defines a project as the merge of the dependencies.
@@ -139,26 +160,15 @@ module Buildr4OSGi #:nodoc:
         end
       }
     end
-    
-    #
-    # Returns the main section of the manifest of the bundle.
-    #
-    def manifest(lib)
-      artifact = Buildr.artifact(lib)
-      artifact.invoke # download it if needed.
-      
-      m = nil
-      Zip::ZipFile.open(artifact.to_s) do |zip|
-        raise "No manifest contained in #{lib}" if zip.find_entry("META-INF/MANIFEST.MF").nil?
-        m = zip.read("META-INF/MANIFEST.MF")
-      end
-      manifest = ::Buildr::Packaging::Java::Manifest.new(m)
-      manifest.main
-    end
   end
 end
 
 module Buildr4OSGi
   include Buildr4OSGi::BuildLibraries
+  include Buildr4OSGi::LibraryProjectExtension
+end
+
+class Buildr::Project
+  include Buildr4OSGi::LibraryProjectExtension
 end
 

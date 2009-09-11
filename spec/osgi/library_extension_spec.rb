@@ -131,5 +131,12 @@ describe Buildr4OSGi::BuildLibraries do
     foo.package(:library_project).invoke
     jar = File.join(foo.base_dir, "target", "org.nuxeo.logging-1.1.2.jar")
     File.exists?(jar).should be_true
-  end    
+  end   
+  
+  it "should work inside a container project" do
+    define('container') do
+      lambda {library_project(SLF4J, "org.nuxeo.libs", "org.nuxeo.logging", "1.1.2",
+      		 :manifest => {"Require-Bundle" => "org.apache.log4j"})}.should_not raise_error(NoMethodError)
+    end
+  end 
 end
