@@ -36,7 +36,7 @@ module Buildr4OSGi
         cmd_args += javac_args
         cmd_args += files_from_sources(sources)
         unless Buildr.application.options.dryrun
-          trace((['osgic'] + cmd_args).join(' '))
+          trace((%w[javac -classpath org.eclipse.jdt.internal.compiler.batch.Main] + cmd_args).join(' '))
           Java.load
           Java.org.eclipse.jdt.internal.compiler.batch.Main.main(cmd_args.
             to_java(Java.java.lang.String)) == 0 or fail 'Failed to compile, see errors above'
