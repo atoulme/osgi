@@ -402,6 +402,64 @@ MANIFEST
     deps["container-bar"]["dependencies"].size.should == 2
   end
   
+  it "should sort projects by name" do
+    define("container") do
+      project.version = "1"
+      project.group = "grp"
+    define('a'){
+      package(:bundle)
+    }
+    define('b'){
+      package(:bundle)
+    }
+    define('c'){
+      package(:bundle)
+    }
+    define('d'){
+      package(:bundle)
+    }
+    define('e'){
+      package(:bundle)
+    }
+    end
+    project('container').osgi.registry.containers = @eclipse_instances.dup
+    project('container').task('osgi:resolve:dependencies').invoke
+    File.exist?('dependencies.yml').should be_true
+    File.read('dependencies.yml').should == <<-CONTENTS
+--- 
+container: 
+  dependencies: []
+
+  projects: []
+
+container-a: 
+  dependencies: []
+
+  projects: []
+
+container-b: 
+  dependencies: []
+
+  projects: []
+
+container-c: 
+  dependencies: []
+
+  projects: []
+
+container-d: 
+  dependencies: []
+
+  projects: []
+
+container-e: 
+  dependencies: []
+
+  projects: []
+
+CONTENTS
+  end
+  
   it 'should give a version to the dependency even if none is specified' do
     write "META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0

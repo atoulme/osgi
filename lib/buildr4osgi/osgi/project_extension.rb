@@ -90,14 +90,18 @@ module OSGi
         base_dir = find_root(project).base_dir
         written_dependencies = YAML.load(File.read(File.join(base_dir, "dependencies.yml"))) if File.exists? File.join(base_dir, "dependencies.yml")
         written_dependencies ||= {}
+        written_dependencies.extend SortedHash
         
        
         _projects.keys.each {|p|
-           written_dependencies[p] ||= {}
-            written_dependencies[p]["dependencies"] ||= []
-            written_dependencies[p]["projects"] ||= []
+          written_dependencies[p] ||= {}
+          written_dependencies[p].extend SortedHash
+          written_dependencies[p]["dependencies"] ||= []
+          written_dependencies[p]["projects"] ||= []
           written_dependencies[p]["dependencies"] |= _dependencies[p]
           written_dependencies[p]["projects"] |= _projects[p]
+          written_dependencies[p]["dependencies"].sort!
+          written_dependencies[p]["projects"].sort!
         }
         
         Buildr::write File.join(base_dir, "dependencies.yml"), written_dependencies.to_yaml
@@ -264,35 +268,53 @@ module OSGi
       as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve(self)}.compact + as_bundle.imports.collect {|i| i.resolve(self)}.flatten
     end
     
-    private
+  end
+  
+  private
+  
+  #
+  # A class to read dependencies.yml, and get a flat array of projects and dependencies for a project.
+  class Dependencies
     
-    #
-    # A class to read dependencies.yml, and get a flat array of projects and dependencies for a project.
-    class Dependencies
-      
-      attr_accessor :dependencies, :projects
-      
-      def read(project)
-        @dependencies = []
-        @projects = []
-        @deps_yml = {}
-        return unless File.exists? File.join(project.base_dir, "dependencies.yml")
-        @deps_yml =YAML.load(File.read(File.join(project.base_dir, "dependencies.yml")))
-        return if dependencies["dependencies"][project.id].nil?
-        _read(project, false)
-        @dependencies.flatten!.compact!.uniq!
-        return @dependencies, @projects
-      end
-      
-      private
-      
-      def _read(project, add_project = true)
-        @dependencies |= @deps_yml[project.id]["dependencies"]
-        projects << project if add_project
-        @deps_yml[project.id]["projects"].each {|p| _read(p) if projects.include(p)}
-      end
+    attr_accessor :dependencies, :projects
+    
+    def read(project)
+      @dependencies = []
+      @projects = []
+      @deps_yml = {}
+      return unless File.exists? File.join(project.base_dir, "dependencies.yml")
+      @deps_yml =YAML.load(File.read(File.join(project.base_dir, "dependencies.yml")))
+      return if dependencies["dependencies"][project.id].nil?
+      _read(project, false)
+      @dependencies.flatten!.compact!.uniq!
+      return @dependencies, @projects
     end
     
+    private
+    
+    def _read(project, add_project = true)
+      @dependencies |= @deps_yml[project.id]["dependencies"]
+      projects << project if add_project
+      @deps_yml[project.id]["projects"].each {|p| _read(p) if projects.include(p)}
+    end
+  end
+  
+  # Copy/pasted from here: http://snippets.dzone.com/posts/show/5811
+  # no author information though.
+  module SortedHash
+    
+    # Replacing the to_yaml function so it'll serialize hashes sorted (by their keys)
+    #
+    # Original function is in /usr/lib/ruby/1.8/yaml/rubytypes.rb
+    def to_yaml( opts = {} )
+      YAML::quick_emit( object_id, opts ) do |out|
+        out.map( taguri, to_yaml_style ) do |map|
+          sort.each do |k, v|   # <-- here's my addition (the 'sort')
+            map.add( k, v )
+          end
+        end
+      end
+    end
   end
 end
 
