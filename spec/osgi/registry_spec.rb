@@ -24,7 +24,6 @@ describe OSGi::Registry do
   it 'should be possible to set containers from the Buildr settings' do
     yaml = {"osgi" => ({"containers" => ["myContainer"]})}
     write 'home/.buildr/settings.yaml', yaml.to_yaml
-    p "wowo"
     define("foo").osgi.registry.containers.should == ["myContainer"]
   end
   
