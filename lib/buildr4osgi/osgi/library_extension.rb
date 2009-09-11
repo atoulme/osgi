@@ -13,7 +13,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-module OSGi #:nodoc:
+module Buildr4OSGi #:nodoc:
   
   # A module dedicated to building jars into OSGi bundles to serve as libraries.
   #
@@ -22,8 +22,7 @@ module OSGi #:nodoc:
     # A small extension contributed to projects that are library projects
     # so we can walk the libraries we pass to them.
     #
-    module LibraryWalker
-      include Extension
+    module LibraryProject
       
       #
       # Walks the libraries passed in parameter, passing each library to the block.
@@ -35,15 +34,36 @@ module OSGi #:nodoc:
           }
           return
         end
-        lib_artifact = case
+        lib_artifact = case 
         when lib.is_a?(Artifact)  then lib
         when lib.is_a?(String) then Buildr::artifact(lib)
-       else
+        else
           raise "Don't know how to interpret lib #{lib}"
         end
         block.call(lib_artifact)
       end
-      module_function :walk_libs
+      
+      def package_as_library_project(file_name)
+        ::OSGi::BundleTask.define_task(file_name).tap do |plugin|
+
+          manifest_location = File.join(project.base_dir, "META-INF", "MANIFEST.MF")
+          manifest = project.manifest
+          if File.exists?(manifest_location)
+            read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read(manifest_location)).main
+            manifest = project.manifest.merge(read_m)
+          end
+          manifest["Bundle-Version"] = project.version # the version of the bundle packaged is ALWAYS the version of the project.
+          manifest["Bundle-SymbolicName"] ||= project.id # if it was resetted to nil, we force the id to be added back.
+
+          plugin.with :manifest=> manifest, :meta_inf=>meta_inf
+          plugin.with [compile.target, resources.target].compact
+        end
+
+      end
+
+      def package_as_library_project_spec(spec) #:nodoc:
+        spec.merge(:type=>:jar)
+      end
     end
 
     # Monkey-patching the artifact so that it warns instead of failing
@@ -63,7 +83,10 @@ module OSGi #:nodoc:
     def library_project(dependencies, group, name, version, options = {:exclude => ["META-INF/MANIFEST.MF"], :include => [], :manifest => {}})
       options[:manifest] ||= {} 
       deps_as_str = []
-      LibraryWalker::walk_libs(dependencies) {|lib|
+      # We create an object and we extend with the module so we can get access to the walk_libs method.
+      walker = Object.new 
+      walker.extend Buildr4OSGi::BuildLibraries::LibraryProject
+      walker.walk_libs(dependencies) {|lib|
         deps_as_str << lib.to_spec
       }
       deps_as_str = deps_as_str.flatten.inspect
@@ -74,11 +97,11 @@ module OSGi #:nodoc:
       Object.class_eval %{
         desc "#{name}"
         Buildr::define "#{name}" do
-          class << self ; include OSGi::BuildLibraries::LibraryWalker ; end
+          project.extend Buildr4OSGi::LibraryProject
           project.version = "#{version}"
           project.group = "#{group}"
 
-          package(:bundle).tap {|jar|
+          package(:library_project).tap {|jar|
             jar.enhance {|task|
               walk_libs(#{deps_as_str}) {|lib|
                 lib.invoke # make sure the artifact is present.
@@ -136,6 +159,6 @@ module OSGi #:nodoc:
 end
 
 module Buildr4OSGi
-  include OSGi::BuildLibraries
+  include Buildr4OSGi::BuildLibraries
 end
 

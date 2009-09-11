@@ -15,7 +15,11 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
-describe OSGi::BuildLibraries do
+Spec::Runner.configure do |config|
+  config.include Buildr4OSGi::SpecHelpers
+end
+
+describe Buildr4OSGi::BuildLibraries do
   
   it 'should merge with the jars of the libraries' do
     library_project(SLF4J, "group", "foo", "1.0.0")
@@ -105,5 +109,18 @@ describe OSGi::BuildLibraries do
     hash = manifest(DEBUG_UI)
     hash.should be_instance_of(Hash)
     hash["Bundle-SymbolicName"].should == "org.eclipse.debug.ui; singleton:=true"
+  end
+  
+  it "should not add all the files at the root of the project" do
+    write "somefile.txt", ""
+    library_project(SLF4J, "group", "foo", "1.0.0")
+    
+    foo = project("foo")
+    lambda {foo.package(:bundle).invoke}.should_not raise_error
+    jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
+    File.exists?(jar).should be_true
+    Zip::ZipFile.open(jar) {|zip|
+      zip.find_entry("somefile.txt").should be_nil  
+    }
   end
 end
