@@ -87,7 +87,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.osgi.something; singleton:=true
 Bundle-Version: 3.9.9.R_20081204
-Require-Bundle: com.ibm.icu,org.eclipse.core.resources,bar
+Require-Bundle: bar
 MANIFEST
     write "bar/META-INF/MANIFEST.MF", <<-MANIFEST
 Manifest-Version: 1.0
@@ -96,6 +96,7 @@ Bundle-SymbolicName: bar
 MANIFEST
     define('container') do
       project.version = "1.0"
+      project.group = "grp"
       define('foo') do
         package(:bundle)
       end
@@ -103,6 +104,7 @@ MANIFEST
         package(:bundle)
       end
     end
+    project('container:foo').task('osgi:resolve:dependencies').invoke
     project('container:foo').manifest_dependencies.should include(project('container:bar'))
   end
   

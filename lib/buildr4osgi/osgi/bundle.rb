@@ -31,7 +31,7 @@ module OSGi #:nodoc:
     #
     def matches(criteria = {:name => "", :version => "", :exports_package => "", :fragment_for => ""})
       if File.exists?(File.join(base_dir, "META-INF", "MANIFEST.MF"))
-        manifest = ::Buildr::Packaging::Java::Manifest.new(File.join(base_dir, "META-INF", "MANIFEST.MF")).main
+        manifest = ::Buildr::Packaging::Java::Manifest.new(File.join(base_dir, "META-INF", "MANIFEST.MF"))
       end
       manifest ||= ::Buildr::Packaging::Java::Manifest.new()
       project.packages.select {|package| package.is_a? ::OSGi::BundlePackaging}.each {|p|
@@ -40,19 +40,19 @@ module OSGi #:nodoc:
         package_manifest = Manifest.read(package_manifest.to_s)
         if criteria[:exports_package]
           if criteria[:version]
-            matchdata = package_manifest[Bundle::B_EXPORT_PKG].first[criteria[:exports_package]] unless package_manifest[Bundle::B_EXPORT_PKG].nil?
+            matchdata = package_manifest.first[Bundle::B_EXPORT_PKG][criteria[:exports_package]] unless package_manifest.first[Bundle::B_EXPORT_PKG].nil?
             return false unless matchdata
-            exported_package_version = matchdata.first["version"].first
+            exported_package_version = matchdata["version"]
             if criteria[:version].is_a? VersionRange
               return criteria[:version].in_range(exported_package_version)
             else
               return criteria[:version] == exported_package_version
             end
           else
-            return false if package_manifest[Bundle::B_EXPORT_PKG].nil?
-            return !package_manifest[Bundle::B_EXPORT_PKG].first[criteria[:exports_package]].nil?
+            return false if package_manifest.first[Bundle::B_EXPORT_PKG].nil?
+            return !package_manifest.first[Bundle::B_EXPORT_PKG][criteria[:exports_package]].nil?
           end
-        elsif (package_manifest[Bundle::B_NAME] == criteria[:name] || id == criteria[:name])
+        elsif (package_manifest.first[Bundle::B_NAME].keys.first == criteria[:name] || id == criteria[:name])
           
           if criteria[:version]
             if criteria[:version].is_a?(VersionRange)

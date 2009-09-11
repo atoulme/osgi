@@ -36,6 +36,8 @@ module OSGi
     #
     def containers
       unless @containers
+        p "resolving"
+        p Buildr.settings.user
         @containers = [Buildr.settings.user, Buildr.settings.build].inject([]) { |repos, hash|
           repos | Array(hash['osgi'] && hash['osgi']['containers'])
         }
