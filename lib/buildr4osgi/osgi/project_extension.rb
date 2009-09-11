@@ -209,18 +209,10 @@ module OSGi
       end
       
       base_dir = find_root(project).base_dir
-      return [] unless File.exists?(File.join(base_dir, "dependencies.yml"))
       
-      dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
-      if dependencies["dependencies"][project.id].nil?
-        task('osgi:resolve:dependencies').enhance(&block).invoke
-        dependencies =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
-      end
-      
-      
-      return (dependencies["dependencies"].collect {|key, value| value if key == project.id} + 
-          dependencies["projects"].collect {|key, value| value.collect {|p| p p ; [project(p), project(p).dependencies] } if key == project.id}
-             ).flatten.compact.uniq
+      deps = Dependencies.new
+      deps.read(project)
+      return deps.projects + deps.dependencies
     end
 
     class OSGi #:nodoc:
@@ -264,6 +256,35 @@ module OSGi
     def manifest_dependencies()
       as_bundle = Bundle.fromProject(self)
       as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve(self)}.compact + as_bundle.imports.collect {|i| i.resolve(self)}.flatten
+    end
+    
+    private
+    
+    #
+    # A class to read dependencies.yml, and get a flat array of projects and dependencies for a project.
+    class Dependencies
+      
+      attr_accessor :dependencies, :projects
+      
+      def read(project)
+        @dependencies = []
+        @projects = []
+        @deps_yml = {}
+        return unless File.exists? File.join(project.base_dir, "dependencies.yml")
+        @deps_yml =YAML.load(File.read(File.join(project.base_dir, "dependencies.yml")))
+        return if dependencies["dependencies"][project.id].nil?
+        _read(project, false)
+        @dependencies.flatten!.compact!.uniq!
+        return @dependencies, @projects
+      end
+      
+      private
+      
+      def _read(project, add_project = true)
+        @dependencies |= @deps_yml["dependencies"][project.id]
+        projects << project if add_project
+        @deps_yml["projects"][project.id].each {|p| _read(p) if projects.include(p)}
+      end
     end
     
   end
