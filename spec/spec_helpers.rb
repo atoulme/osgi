@@ -14,33 +14,39 @@
 # the License.
 
 unless defined?(SpecHelpers)
+  
+  module SandboxHook
+    
+    def SandboxHook.included(spec_helpers)
+      # For testing we use the gem requirements specified on the buildr4osgi.gemspec
+      spec = Gem::Specification.load(File.expand_path('../buildr4osgi.gemspec', File.dirname(__FILE__)))
+      spec.dependencies.each { |dep| gem dep.name, dep.version_requirements.to_s }
+      # Make sure to load from these paths first, we don't want to load any
+      # code from Gem library.
+      $LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
+      require 'buildr4osgi'
+    end
+  end
+  
   require File.join(File.dirname(__FILE__), "/../buildr/spec/spec_helpers.rb")
   
-  
-  fake_local = repositories.local
+  #Change the local Maven repository so that it isn't deleted everytime:
+  fake_local = Buildr::repositories.local
   HELPERS_REPOSITORY = File.expand_path(File.join(File.dirname(__FILE__), "tmp", "remote"))
-  repositories.local = HELPERS_REPOSITORY
+  Buildr::repositories.local = HELPERS_REPOSITORY
+  slf4j = Buildr::group(%w{ slf4j-api slf4j-log4j12 jcl104-over-slf4j }, :under=>"org.slf4j", :version=>"1.5.8")
+  SLF4J = slf4j
   DEBUG_UI = "eclipse:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341"
-  SLF4J = group(%w{ slf4j-api slf4j-log4j12 jcl104-over-slf4j }, :under=>"org.slf4j", :version=>"1.5.8")
-  repositories.remote << "http://www.intalio.org/public/maven2"
+  Buildr::repositories.remote << "http://www.intalio.org/public/maven2"
   artifact(DEBUG_UI).invoke # download it once!
   for lib in SLF4J do
     artifact(lib).invoke
     artifact(artifact(lib).to_hash.merge(:classifier => "sources")).invoke
   end
-  repositories.local = fake_local
-  
-  
-  
-  # Make sure to load from these paths first, we don't want to load any
-  # code from Gem library.
-  $LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
-  require 'buildr4osgi'
-  #Change the local Maven repository so that it isn't deleted everytime:
-  
-
+  Buildr::repositories.local = fake_local
+  # Keep a default registry.
   DEFAULT = Buildr::Nature::Registry.all unless defined?(DEFAULT)
-
+  
   module Buildr4OSGi::SpecHelpers
 
     OSGi_REPOS = File.expand_path File.join(File.dirname(__FILE__), "..", "tmp", "osgi")

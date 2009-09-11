@@ -25,7 +25,7 @@ describe Buildr4OSGi::BuildLibraries do
     library_project(SLF4J, "group", "foo", "1.0.0")
     
     foo = project("foo")
-    lambda {foo.package(:bundle).invoke}.should_not raise_error
+    lambda {foo.package(:library_project).invoke}.should_not raise_error
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
@@ -36,7 +36,7 @@ describe Buildr4OSGi::BuildLibraries do
   it 'should let users decide filters for exclusion when merging libraries' do
     library_project(SLF4J, "group", "foo", "1.0.0", :exclude => "org/slf4j/spi/*")
     foo = project("foo")
-    lambda {foo.package(:bundle).invoke}.should_not raise_error
+    lambda {foo.package(:library_project).invoke}.should_not raise_error
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
@@ -45,7 +45,7 @@ describe Buildr4OSGi::BuildLibraries do
     }
     library_project(SLF4J, "group", "bar", "1.0.0", :include => ["org/slf4j/spi/MarkerFactoryBinder.class", "META-INF/*"])
     bar = project("bar")
-    lambda {bar.package(:bundle).invoke}.should_not raise_error
+    lambda {bar.package(:library_project).invoke}.should_not raise_error
     jar = File.join(bar.base_dir, "target", "bar-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
@@ -58,7 +58,7 @@ describe Buildr4OSGi::BuildLibraries do
   it 'should show the exported packages (the non-empty ones) under the Export-Package header in the manifest' do
     library_project(SLF4J, "group", "foo", "1.0.0")
     foo = project("foo")
-    lambda {foo.package(:bundle).invoke}.should_not raise_error
+    lambda {foo.package(:library_project).invoke}.should_not raise_error
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
@@ -94,7 +94,7 @@ describe Buildr4OSGi::BuildLibraries do
   it "should let the user specify manifest headers" do
     library_project(SLF4J, "group", "foo", "1.0.0", :manifest => {"Require-Bundle" => "org.bundle", "Some-Header" => "u1,u2"})
     foo = project("foo")
-    foo.package(:bundle).invoke
+    foo.package(:library_project).invoke
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
@@ -116,11 +116,20 @@ describe Buildr4OSGi::BuildLibraries do
     library_project(SLF4J, "group", "foo", "1.0.0")
     
     foo = project("foo")
-    lambda {foo.package(:bundle).invoke}.should_not raise_error
+    lambda {foo.package(:library_project).invoke}.should_not raise_error
     jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
     File.exists?(jar).should be_true
     Zip::ZipFile.open(jar) {|zip|
       zip.find_entry("somefile.txt").should be_nil  
     }
   end
+  
+  it "should produce a jar" do
+    library_project(SLF4J, "org.nuxeo.libs", "org.nuxeo.logging", "1.1.2",
+    		 :manifest => {"Require-Bundle" => "org.apache.log4j"})
+    foo = project("org.nuxeo.logging")
+    foo.package(:library_project).invoke
+    jar = File.join(foo.base_dir, "target", "org.nuxeo.logging-1.1.2.jar")
+    File.exists?(jar).should be_true
+  end    
 end
