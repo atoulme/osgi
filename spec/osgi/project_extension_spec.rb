@@ -299,9 +299,9 @@ MANIFEST
     foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["dependencies"]["foo"].size.should == 2
-    artifact(deps["dependencies"]["foo"][0]).to_hash[:id].should == "com.ibm.icu"
-    artifact(deps["dependencies"]["foo"][0]).to_hash[:version].should == "3.9.9.R_20081204"
+    deps["foo"]["dependencies"].size.should == 2
+    artifact(deps["foo"]["dependencies"][0]).to_hash[:id].should == "com.ibm.icu"
+    artifact(deps["foo"]["dependencies"][0]).to_hash[:version].should == "3.9.9.R_20081204"
   end
   
   it 'should write a file named dependencies.yml with the projects required for the project' do
@@ -333,7 +333,7 @@ MANIFEST
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["projects"]["container-foo"].size.should == 1
+    deps["container-foo"]["projects"].size.should == 1
   end
   
   it 'should write a file named dependencies.yml with the projects required for the project' do
@@ -365,7 +365,7 @@ MANIFEST
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["projects"]["container-foo"].size.should == 1
+    deps["container-foo"]["projects"].size.should == 1
   end
   
   it 'should write a file named dependencies.yml and merge it as needed' do
@@ -398,8 +398,8 @@ MANIFEST
     project('container:bar').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["projects"]["container-foo"].size.should == 1
-    deps["dependencies"]["container-bar"].size.should == 2
+    deps["container-foo"]["projects"].size.should == 1
+    deps["container-bar"]["dependencies"].size.should == 2
   end
   
   it 'should give a version to the dependency even if none is specified' do
@@ -417,9 +417,9 @@ MANIFEST
     foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["dependencies"]["foo"].size.should == 2 # there should be 2 dependencies
-    artifact(deps["dependencies"]["foo"][1]).to_hash[:id].should == "org.dude"
-    artifact(deps["dependencies"]["foo"][1]).to_hash[:version].should == "3.5.0.R_20090512"
+    deps["foo"]["dependencies"].size.should == 2 # there should be 2 dependencies
+    artifact(deps["foo"]["dependencies"][1]).to_hash[:id].should == "org.dude"
+    artifact(deps["foo"]["dependencies"][1]).to_hash[:version].should == "3.5.0.R_20090512"
   end
   
   it 'should pick a bundle when several match' do
@@ -450,9 +450,9 @@ MANIFEST
     foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["dependencies"]["foo"].size.should == 1
-    artifact(deps["dependencies"]["foo"][0].to_s).to_hash[:id].should == "org.eclipse.core.resources"
-    artifact(deps["dependencies"]["foo"][0]).to_hash[:version].should == "3.5.1.R_20090512"
+    deps["foo"]["dependencies"].size.should == 1
+    artifact(deps["foo"]["dependencies"][0].to_s).to_hash[:id].should == "org.eclipse.core.resources"
+    artifact(deps["foo"]["dependencies"][0]).to_hash[:version].should == "3.5.1.R_20090512"
   end
   
   it 'should resolve transitively all the jars needed' do
@@ -485,7 +485,7 @@ MANIFEST
       File.exist?('dependencies.yml').should be_true
       deps = YAML::load(File.read('dependencies.yml'))
       
-      deps["dependencies"]["foo"].size.should == 2
+      deps["foo"]["dependencies"].size.should == 2
   end
   
 end

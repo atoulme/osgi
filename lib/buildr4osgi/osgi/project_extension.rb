@@ -89,12 +89,18 @@ module OSGi
         
         base_dir = find_root(project).base_dir
         written_dependencies = YAML.load(File.read(File.join(base_dir, "dependencies.yml"))) if File.exists? File.join(base_dir, "dependencies.yml")
-        written_dependencies ||= {"dependencies" => {}, "projects" => {}}
+        written_dependencies ||= {}
         
-        Buildr::write File.join(base_dir, "dependencies.yml"), 
-          {"dependencies" => written_dependencies["dependencies"].merge(_dependencies), 
-            "projects" => written_dependencies["projects"].merge(_projects)
-          }.to_yaml
+       
+        _projects.keys.each {|p|
+           written_dependencies[p] ||= {}
+            written_dependencies[p]["dependencies"] ||= []
+            written_dependencies[p]["projects"] ||= []
+          written_dependencies[p]["dependencies"] |= _dependencies[p]
+          written_dependencies[p]["projects"] |= _projects[p]
+        }
+        
+        Buildr::write File.join(base_dir, "dependencies.yml"), written_dependencies.to_yaml
       end
     end
   end
@@ -281,9 +287,9 @@ module OSGi
       private
       
       def _read(project, add_project = true)
-        @dependencies |= @deps_yml["dependencies"][project.id]
+        @dependencies |= @deps_yml[project.id]["dependencies"]
         projects << project if add_project
-        @deps_yml["projects"][project.id].each {|p| _read(p) if projects.include(p)}
+        @deps_yml[project.id]["projects"].each {|p| _read(p) if projects.include(p)}
       end
     end
     
