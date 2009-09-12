@@ -215,7 +215,7 @@ module OSGi
     def dependencies(&block)
       
       deps = Dependencies.new
-      
+      deps.read(project)
       return deps.projects + deps.dependencies
     end
 
