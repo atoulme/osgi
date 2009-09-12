@@ -284,7 +284,7 @@ module OSGi
       return unless File.exists? File.join(base_dir, "dependencies.yml")
       @deps_yml =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
       return if @deps_yml[project.id]["dependencies"].nil?
-      _read(project, false)
+      _read(project.id, false)
       @dependencies = @dependencies.flatten.compact.uniq
       return @dependencies, @projects
     end
@@ -292,9 +292,9 @@ module OSGi
     private
     
     def _read(project, add_project = true)
-      @dependencies |= @deps_yml[project.id]["dependencies"]
-      projects << project if add_project
-      @deps_yml[project.id]["projects"].each {|p| _read(p) if projects.include?(p)}
+      @dependencies |= @deps_yml[project]["dependencies"]
+      projects << Buildr::project(project) if add_project
+      @deps_yml[project]["projects"].each {|p| _read(p) unless projects.include?(p)}
     end
   end
   
