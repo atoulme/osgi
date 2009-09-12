@@ -214,14 +214,8 @@ module OSGi
     #
     def dependencies(&block)
       
-      def find_root(project)
-        project.parent.nil? ? project : project.parent
-      end
-      
-      base_dir = find_root(project).base_dir
-      
       deps = Dependencies.new
-      deps.read(project)
+      
       return deps.projects + deps.dependencies
     end
 
@@ -279,14 +273,19 @@ module OSGi
     attr_accessor :dependencies, :projects
     
     def read(project)
+      def find_root(project)
+        project.parent.nil? ? project : project.parent
+      end
+      
+      base_dir = find_root(project).base_dir
       @dependencies = []
       @projects = []
       @deps_yml = {}
-      return unless File.exists? File.join(project.base_dir, "dependencies.yml")
-      @deps_yml =YAML.load(File.read(File.join(project.base_dir, "dependencies.yml")))
-      return if dependencies["dependencies"][project.id].nil?
+      return unless File.exists? File.join(base_dir, "dependencies.yml")
+      @deps_yml =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
+      return if @deps_yml[project.id]["dependencies"].nil?
       _read(project, false)
-      @dependencies.flatten!.compact!.uniq!
+      @dependencies = @dependencies.flatten.compact.uniq
       return @dependencies, @projects
     end
     
@@ -295,7 +294,7 @@ module OSGi
     def _read(project, add_project = true)
       @dependencies |= @deps_yml[project.id]["dependencies"]
       projects << project if add_project
-      @deps_yml[project.id]["projects"].each {|p| _read(p) if projects.include(p)}
+      @deps_yml[project.id]["projects"].each {|p| _read(p) if projects.include?(p)}
     end
   end
   
