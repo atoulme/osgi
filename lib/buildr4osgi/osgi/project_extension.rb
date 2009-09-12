@@ -283,7 +283,7 @@ module OSGi
       @deps_yml = {}
       return unless File.exists? File.join(base_dir, "dependencies.yml")
       @deps_yml =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
-      return if @deps_yml[project.name]["dependencies"].nil?
+      return if @deps_yml[project.name] || @deps_yml[project.name]["dependencies"].nil?
       _read(project.name, false)
       @dependencies = @dependencies.flatten.compact.uniq
       return @dependencies, @projects
