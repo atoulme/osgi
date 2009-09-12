@@ -115,12 +115,12 @@ module Buildr4OSGi #:nodoc:
       inclusion = options[:include].collect {|inclusion| ".include(#{inclusion.inspect})"}.join if options[:include]
       exclusion ||= ""
       inclusion ||= ""
-      Object.class_eval %{
+      eval %{
         desc "#{name}"
-        Buildr::define "#{name}" do
+        define "#{name}" do
           project.extend Buildr4OSGi::LibraryProject
-          project.version = "#{version}"
-          project.group = "#{group}"
+          #{"project.version = \"#{version}\"" if version}
+          #{"project.group = \"#{group}\"" if group}
 
           package(:library_project).tap {|jar|
             jar.enhance {|task|
