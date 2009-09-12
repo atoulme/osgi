@@ -29,3 +29,9 @@ class Object #:nodoc:
     const_set name, const if const.is_a?(Module)
   end
 end
+
+# Project has visibility over everything in the Buildr4OSGi namespace.
+# Rename the manifest function first.
+# class Buildr::Project
+#   include Buildr4OSGi
+# end

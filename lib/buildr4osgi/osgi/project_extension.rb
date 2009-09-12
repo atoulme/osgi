@@ -75,13 +75,13 @@ module OSGi
         _projects = {}
         project.projects.each do |subp|
           collect(subp)
-          _projects[subp.id] = projects.collect {|p| p.id}.uniq.sort
-          _dependencies[subp.id] = bundles.sort 
+          _projects[subp.name] = projects.collect {|p| p.name}.uniq.sort
+          _dependencies[subp.name] = bundles.sort 
         end
         
         collect(project)
-        _dependencies[project.id] = bundles.sort
-        _projects[project.id] = projects.collect {|p| p.id}.uniq.sort
+        _dependencies[project.name] = bundles.sort
+        _projects[project.name] = projects.collect {|p| p.name}.uniq.sort
         
         def find_root(project)
           project.parent.nil? ? project : project.parent
@@ -283,8 +283,8 @@ module OSGi
       @deps_yml = {}
       return unless File.exists? File.join(base_dir, "dependencies.yml")
       @deps_yml =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
-      return if @deps_yml[project.id]["dependencies"].nil?
-      _read(project.id, false)
+      return if @deps_yml[project.name]["dependencies"].nil?
+      _read(project.name, false)
       @dependencies = @dependencies.flatten.compact.uniq
       return @dependencies, @projects
     end

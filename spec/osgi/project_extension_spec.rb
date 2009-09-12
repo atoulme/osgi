@@ -333,7 +333,7 @@ MANIFEST
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["container-foo"]["projects"].size.should == 1
+    deps["container:foo"]["projects"].size.should == 1
   end
   
   it 'should write a file named dependencies.yml with the projects required for the project' do
@@ -365,7 +365,7 @@ MANIFEST
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["container-foo"]["projects"].size.should == 1
+    deps["container:foo"]["projects"].size.should == 1
   end
   
   it 'should write a file named dependencies.yml and merge it as needed' do
@@ -398,8 +398,8 @@ MANIFEST
     project('container:bar').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
-    deps["container-foo"]["projects"].size.should == 1
-    deps["container-bar"]["dependencies"].size.should == 2
+    deps["container:foo"]["projects"].size.should == 1
+    deps["container:bar"]["dependencies"].size.should == 2
   end
   
   it "should sort projects by name" do
@@ -432,27 +432,27 @@ container:
 
   projects: []
 
-container-a: 
+container:a: 
   dependencies: []
 
   projects: []
 
-container-b: 
+container:b: 
   dependencies: []
 
   projects: []
 
-container-c: 
+container:c: 
   dependencies: []
 
   projects: []
 
-container-d: 
+container:d: 
   dependencies: []
 
   projects: []
 
-container-e: 
+container:e: 
   dependencies: []
 
   projects: []
