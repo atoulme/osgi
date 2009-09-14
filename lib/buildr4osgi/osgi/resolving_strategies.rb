@@ -28,7 +28,7 @@ module OSGi #:nodoc:
     #
     def prompt(package, bundles)
       bundle = nil
-      while (!bundle)
+      while (bundle.nil?)
         puts "This package #{package} is exported by all the bundles present.\n" +
               "Choose a bundle amongst those presented or press A to select them all:\n" + bundles.sort! {|a, b| a.version <=> b.version }.
         collect {|b| "\t#{bundles.index(b) +1}. #{b.name} #{b.version}"}.join("\n")
@@ -38,6 +38,7 @@ module OSGi #:nodoc:
           number = number.to_i
           number -= 1
           bundle = bundles[number] if number >= 0 # no negative indexing here.
+          puts "Invalid index" if number < 0
         rescue Exception => e
           puts "Invalid index"
           #do nothing
@@ -83,7 +84,7 @@ module OSGi #:nodoc:
     # 
     def prompt(bundles)
       bundle = nil
-      while (!bundle)
+      while (bundle.nil?)
         puts "Choose a bundle amongst those presented:\n" + bundles.sort! {|a, b| a.version <=> b.version }.
         collect {|b| "\t#{bundles.index(b) +1}. #{b.name} #{b.version}"}.join("\n")
         number = gets.chomp
@@ -91,6 +92,7 @@ module OSGi #:nodoc:
           number = number.to_i
           number -= 1
           bundle = bundles[number] if number >= 0 # no negative indexing here.
+          puts "Invalid index" if number < 0
         rescue Exception => e
           puts "Invalid index"
           #do nothing

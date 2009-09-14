@@ -33,10 +33,6 @@ describe OSGi::ProjectExtension do
     define('foo').osgi.registry.should be_instance_of(OSGi::Registry)
   end
   
-  it 'should give options to resolve bundle dependencies' do
-    pending
-  end
-  
 end
 
 describe OSGi::DependenciesTask do
