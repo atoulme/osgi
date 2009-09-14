@@ -49,6 +49,7 @@ describe OSGi::BundleResolvingStrategies do
       input = $stdin
       $stdin = StringIO.new
       $stdin.should_receive(:gets).and_return("i\n")
+      $stdin.should_receive(:gets).and_return("256\n")
       $stdin.should_receive(:gets).and_return("2\n")
       lambda { 
         OSGi::BundleResolvingStrategies.prompt(@bundles).should == @bundles[1]
@@ -94,6 +95,7 @@ describe OSGi::PackageResolvingStrategies do
       input = $stdin
       $stdin = StringIO.new
       $stdin.should_receive(:gets).and_return("i\n")
+      $stdin.should_receive(:gets).and_return("256\n")
       $stdin.should_receive(:gets).and_return("2\n")
       lambda { 
         OSGi::PackageResolvingStrategies.prompt(::OSGi::BundlePackage.new("com.package", "1.0"), @bundles).should == [@bundles[1]]
