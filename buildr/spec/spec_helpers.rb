@@ -37,6 +37,8 @@ unless defined?(SpecHelpers)
     require path
   end
   require 'buildr'
+  
+  include SandboxHook if defined?(SandboxHook)
 
   require File.expand_path('sandbox', File.dirname(__FILE__))
 
