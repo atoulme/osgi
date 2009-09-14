@@ -24,6 +24,7 @@ describe Buildr4OSGi::CompilerSupport::OSGiC do
   javac_spec = File.read(File.join(File.dirname(__FILE__), "..", "..", "buildr", "spec", "java", "compiler_spec.rb"))
   javac_spec = javac_spec.match(Regexp.escape("require File.join(File.dirname(__FILE__), '../spec_helpers')\n")).post_match
   javac_spec.gsub!("javac", "osgic")
+  javac_spec.gsub!("nowarn", "warn:none")
   eval(javac_spec)
 end
 

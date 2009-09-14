@@ -21,7 +21,7 @@ module Buildr4OSGi
       OPTIONS = [:warnings, :debug, :deprecation, :source, :target, :lint, :other]
     
       specify :language=>:java, :sources => 'java', :source_ext => 'java',
-              :target=>'classes', :target_ext=>'class', :packaging=>:plugin
+              :target=>'classes', :target_ext=>'class', :packaging=>:jar
               
               
       def compile(sources, target, dependencies) #:nodoc:
@@ -33,7 +33,7 @@ module Buildr4OSGi
         source_paths = sources.select { |source| File.directory?(source) }
         cmd_args << '-sourcepath' << source_paths.join(File::PATH_SEPARATOR) unless source_paths.empty?
         cmd_args << '-d' << File.expand_path(target)
-        cmd_args += javac_args
+        cmd_args += osgic_args
         cmd_args += files_from_sources(sources)
         unless Buildr.application.options.dryrun
           trace((%w[javac -classpath org.eclipse.jdt.internal.compiler.batch.Main] + cmd_args).join(' '))
@@ -42,7 +42,25 @@ module Buildr4OSGi
               fail 'Failed to compile, see errors above'
         end
       end
-      alias :osgic_args :javac_args 
+
+      private
+      
+      # See arg list here: http://publib.boulder.ibm.com/infocenter/rsahelp/v7r0m0/index.jsp?topic=/org.eclipse.jdt.doc.isv/guide/jdt_api_compile.htm
+      def osgic_args #:nodoc:
+        args = []  
+        args << '-warn:none' unless options[:warnings]
+        args << '-verbose' if Buildr.application.options.trace
+        args << '-g' if options[:debug]
+        args << '-deprecation' if options[:deprecation]
+        args << '-source' << options[:source].to_s if options[:source]
+        args << '-target' << options[:target].to_s if options[:target]
+        case options[:lint]
+        when Array  then args << "-Xlint:#{options[:lint].join(',')}"
+        when String then args << "-Xlint:#{options[:lint]}"
+        when true   then args << '-Xlint'
+        end
+        args + Array(options[:other])
+      end
       
     end
     
