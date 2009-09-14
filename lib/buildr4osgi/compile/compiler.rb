@@ -38,8 +38,8 @@ module Buildr4OSGi
         unless Buildr.application.options.dryrun
           trace((%w[javac -classpath org.eclipse.jdt.internal.compiler.batch.Main] + cmd_args).join(' '))
           Java.load
-          Java.org.eclipse.jdt.internal.compiler.batch.Main.main(cmd_args.
-            to_java(Java.java.lang.String)) == 0 or fail 'Failed to compile, see errors above'
+          Java.org.eclipse.jdt.internal.compiler.batch.Main.compile(cmd_args.join(" ")) or
+              fail 'Failed to compile, see errors above'
         end
       end
       alias :osgic_args :javac_args 
