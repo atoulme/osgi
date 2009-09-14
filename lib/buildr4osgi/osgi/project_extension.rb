@@ -83,28 +83,11 @@ module OSGi
         _dependencies[project.name] = bundles.sort
         _projects[project.name] = projects.collect {|p| p.name}.uniq.sort
         
-        def find_root(project)
-          project.parent.nil? ? project : project.parent
-        end
-        
-        base_dir = find_root(project).base_dir
-        written_dependencies = YAML.load(File.read(File.join(base_dir, "dependencies.yml"))) if File.exists? File.join(base_dir, "dependencies.yml")
-        written_dependencies ||= {}
-        written_dependencies.extend SortedHash
-        
-       
-        _projects.keys.each {|p|
-          written_dependencies[p] ||= {}
-          written_dependencies[p].extend SortedHash
-          written_dependencies[p]["dependencies"] ||= []
-          written_dependencies[p]["projects"] ||= []
-          written_dependencies[p]["dependencies"] |= _dependencies[p]
-          written_dependencies[p]["projects"] |= _projects[p]
-          written_dependencies[p]["dependencies"].sort!
-          written_dependencies[p]["projects"].sort!
+        dependencies = ::OSGi::Dependencies.new(project)
+        dependencies.write(_projects.keys) {|hash, p|
+          hash[p]["dependencies"] |= _dependencies[p]
+          hash[p]["projects"] |= _projects[p]
         }
-        
-        Buildr::write File.join(base_dir, "dependencies.yml"), written_dependencies.to_yaml
       end
     end
   end
@@ -214,8 +197,8 @@ module OSGi
     #
     def dependencies(&block)
       
-      deps = Dependencies.new
-      deps.read(project)
+      deps = ::OSGi::Dependencies.new(project)
+      deps.read
       return deps.projects + deps.dependencies
     end
 
@@ -264,57 +247,6 @@ module OSGi
     
   end
   
-  private
-  
-  #
-  # A class to read dependencies.yml, and get a flat array of projects and dependencies for a project.
-  class Dependencies
-    
-    attr_accessor :dependencies, :projects
-    
-    def read(project)
-      def find_root(project)
-        project.parent.nil? ? project : project.parent
-      end
-      
-      base_dir = find_root(project).base_dir
-      @dependencies = []
-      @projects = []
-      @deps_yml = {}
-      return unless File.exists? File.join(base_dir, "dependencies.yml")
-      @deps_yml =YAML.load(File.read(File.join(base_dir, "dependencies.yml")))
-      return if @deps_yml[project.name].nil? || @deps_yml[project.name]["dependencies"].nil?
-      _read(project.name, false)
-      @dependencies = @dependencies.flatten.compact.uniq
-      return @dependencies, @projects
-    end
-    
-    private
-    
-    def _read(project, add_project = true)
-      @dependencies |= @deps_yml[project]["dependencies"]
-      projects << Buildr::project(project) if add_project
-      @deps_yml[project]["projects"].each {|p| _read(p) unless projects.include?(p)}
-    end
-  end
-  
-  # Copy/pasted from here: http://snippets.dzone.com/posts/show/5811
-  # no author information though.
-  module SortedHash
-    
-    # Replacing the to_yaml function so it'll serialize hashes sorted (by their keys)
-    #
-    # Original function is in /usr/lib/ruby/1.8/yaml/rubytypes.rb
-    def to_yaml( opts = {} )
-      YAML::quick_emit( object_id, opts ) do |out|
-        out.map( taguri, to_yaml_style ) do |map|
-          sort.each do |k, v|   # <-- here's my addition (the 'sort')
-            map.add( k, v )
-          end
-        end
-      end
-    end
-  end
 end
 
 module Buildr #:nodoc:
