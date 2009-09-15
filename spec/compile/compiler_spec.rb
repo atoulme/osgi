@@ -25,14 +25,27 @@ describe Buildr4OSGi::CompilerSupport::OSGiC do
     eval(javac_spec)
   end
   
+  # Redirect the java error ouput, yielding so you can do something while it is
+  # and returning the content of the error buffer.
+  #
+  def redirect_java_err
+    byteArray = Rjb::import('java.io.ByteArrayOutputStream')
+    printStream = Rjb::import('java.io.PrintStream')
+    out = byteArray.new()
+    Rjb::import('java.lang.System').out = printStream.new(out)
+    err = byteArray.new()
+    Rjb::import('java.lang.System').err = printStream.new(err)
+    yield
+    err.toString
+  end
+  
   it "should not issue warnings for type casting when warnings are set to warn:none" do
     write "src/main/java/Main.java", "import java.util.List; public class Main {public List get() {return null;}}"
     foo = define("foo") {
       compile.options.source = "1.5"
       compile.options.target = "1.5"
     }
-    pending "Cannot redirect the output of the compiler to Ruby"
-    lambda {foo.compile.invoke}.should_not show(/WARNING/)
+    redirect_java_err { foo.compile.invoke }.should_not match(/WARNING/)
   end
   
   it "should not issue warnings for type casting when warnings are set to warn:none" do
@@ -42,12 +55,10 @@ describe Buildr4OSGi::CompilerSupport::OSGiC do
       compile.options.target = "1.5"
       compile.options.warnings = true
     }
-    pending "Cannot redirect the output of the compiler to Ruby"
-    out = Rjb::import('java.lang.System').out
-    p out._classname
-    foo.compile.invoke
-    p out
+    redirect_java_err { foo.compile.invoke }.should match(/WARNING/)
   end
+  
+  
 end
 
 
