@@ -33,6 +33,27 @@ describe OSGi::ProjectExtension do
     define('foo').osgi.registry.should be_instance_of(OSGi::Registry)
   end
   
+  it 'should fail when the user uses a dependency that is not present locally or remotely' do
+    write "dependencies.yml", {"foo" => {"dependencies" => ["group:artifact:jar:99.99.1"], "projects" => []}, 
+                                "bar" => {"dependencies" => [], "projects" => ["foobar"]}}.to_yaml
+    foo = define('foo') {
+      compile.with dependencies
+    }
+    bar = define("bar") {
+      compile.with dependencies
+    }
+    lambda {foo.compile.invoke}.should raise_error(RuntimeError, /Failed to download group:artifact:jar:99.99.1/)
+    lambda {bar.compile.invoke}.should raise_error(RuntimeError, /No such project/)
+  end
+  
+  it 'should fail when the user uses a project that is not present locally or remotely' do
+    # see the spec dependencies_spec.rb at line 33 for an equivalent test.
+    write "dependencies.yml", {"bar" => {"dependencies" => [], "projects" => ["foobar"]}}.to_yaml
+    bar = define("bar") {
+      lambda {compile.with dependencies}.should raise_error(RuntimeError, /No such project/)
+    }
+  end
+  
 end
 
 describe OSGi::DependenciesTask do
