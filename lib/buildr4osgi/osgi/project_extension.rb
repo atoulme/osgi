@@ -76,11 +76,11 @@ module OSGi
         project.projects.each do |subp|
           collect(subp)
           _projects[subp.name] = projects.collect {|p| p.name}.uniq.sort
-          _dependencies[subp.name] = bundles.sort 
+          _dependencies[subp.name] = bundles.collect {|b| b.to_s }.uniq.sort 
         end
         
         collect(project)
-        _dependencies[project.name] = bundles.sort
+        _dependencies[project.name] = bundles.collect {|b| b.to_s }.uniq.sort 
         _projects[project.name] = projects.collect {|p| p.name}.uniq.sort
         
         dependencies = ::OSGi::Dependencies.new(project)
