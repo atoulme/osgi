@@ -31,8 +31,6 @@ describe Buildr4OSGi::CompilerSupport::OSGiC do
   def redirect_java_err
     byteArray = Rjb::import('java.io.ByteArrayOutputStream')
     printStream = Rjb::import('java.io.PrintStream')
-    out = byteArray.new()
-    Rjb::import('java.lang.System').out = printStream.new(out)
     err = byteArray.new()
     Rjb::import('java.lang.System').err = printStream.new(err)
     yield
