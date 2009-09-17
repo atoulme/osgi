@@ -196,47 +196,9 @@ module OSGi
     # This method is used recursively, so beware of cyclic dependencies.
     #
     def dependencies(&block)
-      
       deps = ::OSGi::Dependencies.new(project)
       deps.read
-      return deps.projects + deps.dependencies
-    end
-
-    class OSGi #:nodoc:
-
-      attr_reader :options, :registry
-
-      def initialize(project)
-        if (project.parent)
-          @options = project.parent.osgi.options.dup
-          @registry = project.parent.osgi.registry.dup
-        end
-        @options ||= Options.new
-        @registry ||= ::OSGi::Registry.new
-      end
-
-      # The options for the osgi.options method
-      #   package_resolving_strategy:
-      #     The package resolving strategy, it should be a symbol representing a module function in the OSGi::PackageResolvingStrategies module.
-      #   bundle_resolving_strategy:
-      #     The bundle resolving strategy, it should be a symbol representing a module function in the OSGi::BundleResolvingStrategies module.
-      class Options
-        attr_accessor :package_resolving_strategy, :bundle_resolving_strategy
-
-        def initialize
-          @package_resolving_strategy = :all
-          @bundle_resolving_strategy = :latest
-        end
-
-      end
-    end
-    
-    # Makes a osgi instance available to the project.
-    # The osgi object may be used to access OSGi containers
-    # or set options, currently the resolving strategies.
-    def osgi
-      @osgi ||= OSGi.new(self)
-      @osgi
+      deps.dependencies + deps.projects
     end
     
     # returns an array of the dependencies of the plugin, read from the manifest.

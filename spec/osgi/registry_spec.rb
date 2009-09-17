@@ -48,3 +48,34 @@ describe OSGi::Registry do
     lambda {foo.osgi.registry.containers = ["hello"]}.should raise_error(RuntimeError, /Cannot set containers, containers have been resolved already/)
   end
 end
+
+
+describe OSGi::OSGi do
+  
+  it 'should add a new osgi method to projects' do
+    define('foo').osgi.should be_instance_of(::OSGi::OSGi)
+  end
+  
+  it 'should give a handle over the OSGi containers registry' do
+    define('foo').osgi.registry.should be_instance_of(::OSGi::Registry)
+  end
+  
+end
+
+describe OSGi::GroupMatcher do
+  
+  it 'should use osgi as the default group for an artifact' do
+    OSGi::GroupMatcher.instance.group("hello").should == "osgi"
+  end
+
+  it 'should use org.eclipse  as the default group for Eclipse artifacts' do
+    OSGi::GroupMatcher.instance.group("org.eclipse.core.resources").should == "org.eclipse"
+  end  
+  
+  it 'should let users specify their own groups' do
+    OSGi::GroupMatcher.instance.group_matchers << Proc.new {|name| "bar" if name.match /foo$/}
+    OSGi::GroupMatcher.instance.group("org.eclipse.core.resources").should == "org.eclipse"
+    OSGi::GroupMatcher.instance.group("hello").should == "osgi"
+    OSGi::GroupMatcher.instance.group("org.eclipse.core.foo").should == "bar" 
+  end
+end

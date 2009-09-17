@@ -36,7 +36,7 @@ describe OSGi::Dependencies do
     bar = define("bar")
     
     deps = OSGi::Dependencies.new(foo)
-    lambda { deps.read }.should_not raise_error(RuntimeError, /No such project/)
+    lambda { deps.read }.should raise_error(RuntimeError, /No such project/)
   end
   
   it "should add the project to the dependencies even if the project is not declared in the dependencies file" do

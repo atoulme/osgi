@@ -136,5 +136,10 @@ module OSGi #:nodoc:
       end
       selected
     end
+    
+    def ==(other)
+      false unless other.is_a? Container
+      return location == other.location
+    end
   end
 end

@@ -14,8 +14,6 @@
 # the License.
 
 module OSGi #:nodoc:
-
-  OSGI_GROUP_ID = "osgi"
   
   # :nodoc:
   # Module extending projects
@@ -92,7 +90,7 @@ module OSGi #:nodoc:
     # Creates a bundle out of a project, using the manifest defined in its bundle package
     # and the MANIFEST.MF file present in the project if any.
     def self.fromProject(project)
-      packaging = project.packages.select {|package| package.is_a?(::OSGi::BundlePackaging)}
+      packaging = project.packages.select {|package| package.is_a?(BundlePackaging)}
       raise "More than one bundle packaging is defined over the project #{project.id}, see BOSGI-16." if packaging.size > 1
       return nil if packaging.empty?
       manifest = ::Buildr::Packaging::Java::Manifest.new(File.exists?("META-INF/MANIFEST.MF") ? File.read("META-INF/MANIFEST.MF") : nil) 
@@ -172,7 +170,7 @@ module OSGi #:nodoc:
       @optional = args[:optional]
       @start_level = 4
       @type = "jar" #it's always a jar, even if it is a directory: we will jar it for Maven.
-      @group = OSGI_GROUP_ID
+      @group = GroupMatcher.instance.group(name)
     end
 
     
@@ -183,7 +181,7 @@ module OSGi #:nodoc:
       # Collect the bundle projects, duplicate them so no changes can be applied to them
       # and extend them with the BundleProjectMatcher module
       
-      b_projects = OSGi::BundleProjects::bundle_projects.select {|p|
+      b_projects = BundleProjects::bundle_projects.select {|p|
         unless p == project
           p.extend BundleProjectMatcher
           p.matches(:name => name, :version => version)
@@ -227,7 +225,7 @@ module OSGi #:nodoc:
       when 0 then nil
       when 1 then bundles.first
       else
-        OSGi::BundleResolvingStrategies.send(project.osgi.options.bundle_resolving_strategy, bundles)
+        BundleResolvingStrategies.send(project.osgi.options.bundle_resolving_strategy, bundles)
       end
       if bundle.nil?
         warn "Could not resolve bundle for #{self.to_s}" 

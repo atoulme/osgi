@@ -35,9 +35,9 @@ module OSGi #:nodoc:
     def resolve_matching_artifacts(project)
       # Collect the bundle projects
       # and extend them with the BundleProjectMatcher module
-      b_projects = OSGi::BundleProjects::bundle_projects.select {|p|
+      b_projects = BundleProjects::bundle_projects.select {|p|
         unless p == project
-          p.extend OSGi::BundleProjectMatcher 
+          p.extend BundleProjectMatcher 
           p.matches(:exports_package => name, :version => version)
         end
       }
