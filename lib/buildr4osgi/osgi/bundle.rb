@@ -29,7 +29,7 @@ module OSGi #:nodoc:
     #
     def matches(criteria = {:name => "", :version => "", :exports_package => "", :fragment_for => ""})
       if File.exists?(File.join(base_dir, "META-INF", "MANIFEST.MF"))
-        manifest = ::Buildr::Packaging::Java::Manifest.new(File.join(base_dir, "META-INF", "MANIFEST.MF"))
+        manifest = ::Buildr::Packaging::Java::Manifest.new(File.read(File.join(base_dir, "META-INF", "MANIFEST.MF")))
       end
       manifest ||= ::Buildr::Packaging::Java::Manifest.new()
       project.packages.select {|package| package.is_a? ::OSGi::BundlePackaging}.each {|p|
