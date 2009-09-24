@@ -71,6 +71,23 @@ describe Buildr4OSGi::BuildLibraries do
     }
   end
   
+  it 'should not add the Export-Package header if no packages contain .class files' do
+    pending "Create a zip full of files but no .class files"
+    library_project(SLF4J, "group", "foo", "1.0.0")
+    foo = project("foo")
+    lambda {foo.package(:library_project).invoke}.should_not raise_error
+    jar = File.join(foo.base_dir, "target", "foo-1.0.0.jar")
+    File.exists?(jar).should be_true
+    Zip::ZipFile.open(jar) {|zip|
+      manifest = zip.find_entry("META-INF/MANIFEST.MF")
+      manifest.should_not be_nil  
+      contents = Manifest.read(zip.read(manifest))
+      contents.first["Export-Package"].should_not be_nil
+      contents.first["Export-Package"].keys.should include("org.slf4j.helpers")
+      contents.first["Export-Package"].keys.should_not include("org")
+    }
+  end
+  
   it 'should produce a zip of the sources' do
     library_project(SLF4J, "group", "foo", "1.0.0")
     foo = project("foo")

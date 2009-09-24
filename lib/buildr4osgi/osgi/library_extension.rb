@@ -136,13 +136,15 @@ module Buildr4OSGi #:nodoc:
               lib.invoke # make sure the artifact is present.
               Zip::ZipFile.foreach(lib.to_s) {|entry| entries << entry.name.sub(/(.*)\\/.*.class$/, '\\1').gsub(/\\//, '.') if /.*\\.class$/.match(entry.name)}
             }
-            jar.with :manifest => { 
-              "Export-Package" => entries.uniq.sort.join(","),
+            lib_manifest = { 
               "Bundle-Version" => "#{version}",
               "Bundle-SymbolicName" => project.name,
               "Bundle-Name" => names.join(", "),
               "Bundle-Vendor" => "Intalio, Inc."
-            }.merge(#{options[:manifest].inspect})
+            }
+            lib_manifest["Export-Package"] = entries.uniq.sort.join(",") unless entries.empty?
+            
+            jar.with :manifest => lib_manifest.merge(#{options[:manifest].inspect})
             
             
           }
