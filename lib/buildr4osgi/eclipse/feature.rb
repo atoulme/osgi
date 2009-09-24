@@ -161,9 +161,9 @@ PROPERTIES
         File.open(File.join(project.base_dir, 'target', 'feature.xml'), 'w') do |f|
           f.write(writeFeatureXml(resolved_plugins.keys, feature_xml.nil? && feature_properties.nil? ))
         end
-        path("eclipse/features/#{project.id}_#{project.version}").include File.join(project.base_dir, 'target/feature.xml')
+        path("eclipse/features/#{feature_id}_#{project.version}").include File.join(project.base_dir, 'target/feature.xml')
       else
-        path("eclipse/features/#{project.id}_#{project.version}").include feature_xml
+        path("eclipse/features/#{feature_id}_#{project.version}").include feature_xml
       end
       unless feature_properties || feature_xml
         File.open(File.join(project.base_dir, 'target', 'feature.properties'), 'w') do |f|
