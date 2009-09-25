@@ -143,7 +143,7 @@ module Buildr4OSGi #:nodoc:
               "Bundle-Vendor" => "Intalio, Inc."
             }
             lib_manifest["Export-Package"] = entries.uniq.sort.join(",") unless entries.empty?
-            
+            lib_manifest["Bundle-ManifestVersion"] = "2"
             jar.with :manifest => lib_manifest.merge(#{options[:manifest].inspect})
             
             
