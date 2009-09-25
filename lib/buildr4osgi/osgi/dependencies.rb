@@ -66,7 +66,7 @@ class Dependencies
   end
   
   def find_root(project)
-    project.parent.nil? ? project : project.parent
+    project.parent.nil? ? project : find_root(project.parent)
   end
   
   # Copy/pasted from here: http://snippets.dzone.com/posts/show/5811
