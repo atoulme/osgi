@@ -63,6 +63,16 @@ PLUGIN_PROPERTIES
     end
   end
   
+  it "should package a project as a plugin with its internal properties files" do
+    define_project
+    Buildr::write "src/main/java/somefolder/hello.properties", "# Empty properties file"
+     @plugin.package(:plugin).invoke
+    File.exists?(@path).should be_true
+    Zip::ZipFile.open(@path) do |zip|
+      zip.find_entry("somefolder/hello.properties").should_not be_nil
+    end
+  end
+  
   it "should work with subprojects" do
     Buildr::write "bar/plugin.xml", <<-PLUGIN_XML
 <?xml version="1.0" encoding="UTF-8"?>
