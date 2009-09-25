@@ -40,6 +40,9 @@ unless defined?(SpecHelpers)
   
   include SandboxHook if defined?(SandboxHook)
 
+  # Give a chance for plugins to do a few things before requiring the sandbox.
+  include SandboxHook if defined?(SandboxHook)
+  
   require File.expand_path('sandbox', File.dirname(__FILE__))
 
   module SpecHelpers
