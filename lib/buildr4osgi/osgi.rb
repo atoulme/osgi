@@ -15,6 +15,7 @@
 
 require 'buildr4osgi/osgi/version'
 require 'buildr4osgi/osgi/packaging'
+require 'buildr4osgi/osgi/packaging_sources'
 require 'buildr4osgi/osgi/bundle'
 require 'buildr4osgi/osgi/bundle_package'
 require 'buildr4osgi/osgi/container'
