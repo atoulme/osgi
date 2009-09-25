@@ -44,8 +44,6 @@ unless defined?(SpecHelpers)
     artifact(artifact(lib).to_hash.merge(:classifier => "sources")).invoke
   end
   Buildr::repositories.local = fake_local
-  # Keep a default registry.
-  DEFAULT = Buildr::Nature::Registry.all unless defined?(DEFAULT)
   
   module Buildr4OSGi::SpecHelpers
 
