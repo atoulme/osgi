@@ -257,7 +257,7 @@ PROPERTIES
     end
     
     def package_as_feature_spec(spec) #:nodoc:
-      spec.merge(:type=>:jar, :classifier=>'feature')
+      spec.merge(:type=>:zip)
     end
   end
 

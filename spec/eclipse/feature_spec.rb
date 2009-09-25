@@ -143,7 +143,7 @@ FEATURE
     foo.package(:feature).feature_xml = "feature.xml"
     
     foo.package(:feature).invoke
-    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0.zip")
     Zip::ZipFile.open(feature_file) do |zip|
       zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
       zip.read("eclipse/features/foo_1.0.0/feature.xml").should == featurexml
@@ -164,7 +164,7 @@ PROPS
     foo.package(:feature).feature_xml = "feature.xml"
     foo.package(:feature).feature_properties = "feature.properties"
     foo.package(:feature).invoke
-    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0.zip")
     Zip::ZipFile.open(feature_file) do |zip|
       zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
       zip.read("eclipse/features/foo_1.0.0/feature.xml").should == featurexml
@@ -190,7 +190,7 @@ PROPS
     f.license = "The license is too long to explain"
     f.licenseURL = "http://example.com/license"
     foo.package(:feature).invoke
-    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    feature_file = File.join(foo.base_dir, "target", "foo-1.0.0.zip")
     Zip::ZipFile.open(feature_file) do |zip|
       zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
       feature_xml = zip.read("eclipse/features/foo_1.0.0/feature.xml")
@@ -222,7 +222,7 @@ describe Buildr4OSGi::FeatureTask, " when running" do
   
   it "should create a jar file with a eclipse/plugins and a eclipse/features structure" do
     @foo.package(:feature).invoke
-    feature_file = File.join(@foo.base_dir, "target", "foo-1.0.0-feature.jar")
+    feature_file = File.join(@foo.base_dir, "target", "foo-1.0.0.zip")
     File.exists?(feature_file).should be_true
     Zip::ZipFile.open(feature_file) do |zip|
       zip.find_entry("eclipse/features/foo_1.0.0/feature.xml").should_not be_nil
