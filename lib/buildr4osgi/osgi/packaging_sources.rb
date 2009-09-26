@@ -23,42 +23,49 @@ module OSGi
   # to be used by the buildr system properly.
   #
   module BundlePackaging
-    alias :package_as_sources_old :package_as_sources
-    alias :package_as_sources :package_as_osgi_pde_sources
-    
-    alias :package_as_sources_spec_old :package_as_sources_spec
-    alias :package_as_sources_spec :package_as_osgi_pde_sources_spec
 
+    class ::Buildr::Project
 
-    # Change the zip classifier for the sources produced by
-    # a jar classifier.
-    def package_as_osgi_pde_sources_spec(spec) #:nodoc:
-      spec.merge(:type=>:jar, :classifier=>'sources')
-    end
-
-
-    # package as an OSGi bundle that contains the sources
-    # of the bundle. Specialized for eclipse-PDE version 3.4.0 and more recent
-    # http://help.eclipse.org/ganymede/index.jsp?topic=/org.eclipse.pde.doc.user/tasks/pde_individual_source.htm
-    # file_name
-    def package_as_osgi_pde_sources(file_name)
-      pluginManifest = package(:plugin).manifest
-      #remove the properties after the sym-name such as ';singleton=true'
-      bundleSymName = pluginManifest["Bundle-SymbolicName"].split(';')[0]
-      bundleVersion = pluginManifest["Bundle-Version"]
-
-      sourcesManifest = ::Buildr::Packaging::Java::Manifest.new(nil)
-      sourcesManifest.main["Bundle-ManifestVersion"]="2"
-      sourcesManifest.main["Eclipse-SourceBundle"]=bundleSymName+";version=\""+bundleVersion+"\";roots:=\".\""
-      sourcesManifest.main["Bundle-SymbolicName"]=bundleSymName+".sources"
-      sourcesManifest.main["Bundle-Name"]=pluginManifest["Bundle-Name"]+" sources"
-      sourcesManifest.main["Bundle-Version"]=bundleVersion
-      bundleVendor = pluginManifest["Bundle-Vendor"]
-      if (bundleVendor != nil)
-        sourcesManifest.main["Bundle-Vendor"]=bundleVendor
+      # Change the zip classifier for the sources produced by
+      # a jar classifier.
+      def package_as_osgi_pde_sources_spec(spec) #:nodoc:
+        spec.merge(:type=>:jar, :classifier=>'sources')
       end
-      package_as_sources_old(:sources).with :manifest=>sourcesManifest
+
+
+      # package as an OSGi bundle that contains the sources
+      # of the bundle. Specialized for eclipse-PDE version 3.4.0 and more recent
+      # http://help.eclipse.org/ganymede/index.jsp?topic=/org.eclipse.pde.doc.user/tasks/pde_individual_source.htm
+      # file_name
+      def package_as_osgi_pde_sources(file_name)
+        pluginManifest = package(:plugin).manifest
+        #remove the properties after the sym-name such as ';singleton=true'
+        bundleSymName = pluginManifest["Bundle-SymbolicName"].split(';')[0]
+        bundleVersion = pluginManifest["Bundle-Version"]
+
+        sourcesManifest = ::Buildr::Packaging::Java::Manifest.new(nil)
+        sourcesManifest.main["Bundle-ManifestVersion"]="2"
+        sourcesManifest.main["Eclipse-SourceBundle"]=bundleSymName+";version=\""+bundleVersion+"\";roots:=\".\""
+        sourcesManifest.main["Bundle-SymbolicName"]=bundleSymName+".sources"
+        sourcesManifest.main["Bundle-Name"]=pluginManifest["Bundle-Name"]+" sources"
+        sourcesManifest.main["Bundle-Version"]=bundleVersion
+        bundleVendor = pluginManifest["Bundle-Vendor"]
+        if (bundleVendor != nil)
+          sourcesManifest.main["Bundle-Vendor"]=bundleVendor
+        end
+        package_as_sources_old(:sources).with :manifest=>sourcesManifest
+      end
+
+
+      protected 
+      alias :package_as_sources_old :package_as_sources
+      alias :package_as_sources :package_as_osgi_pde_sources
+      
+      alias :package_as_sources_spec_old :package_as_sources_spec
+      alias :package_as_sources_spec :package_as_osgi_pde_sources_spec
     end
+
+
 
   end
 end
