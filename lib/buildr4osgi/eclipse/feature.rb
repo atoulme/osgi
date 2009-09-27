@@ -257,7 +257,7 @@ PROPERTIES
     end
     
     def package_as_feature_spec(spec) #:nodoc:
-      spec.merge(:type=>:zip)
+      spec.merge(:type=>:zip, :id => name.split(":").last)
     end
   end
 
