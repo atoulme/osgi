@@ -99,7 +99,7 @@ module OSGi
     end
     
     def package_as_bundle_spec(spec) #:nodoc:
-      spec.merge(:type=>:jar)
+      spec.merge(:type=>:jar, :id => name.split(":").last)
     end
     
     before_define do |project|

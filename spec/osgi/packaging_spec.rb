@@ -41,7 +41,6 @@ PLUGIN_PROPERTIES
     Buildr::write "src/main/java/Main.java", "public class Main { public static void main(String[] args) {}}"
     @plugin = define("plugin", :version => "1.0.0.001")
     @path = @plugin.package(:plugin).to_s
-    
   end
   
   it "should package a project as a normal Java project" do
@@ -95,6 +94,7 @@ PLUGIN_PROPERTIES
       define("bar", :version => "2.0")
     end
     project("plugin:bar").package(:plugin).invoke
+    File.basename(project("plugin:bar").package(:plugin).to_s).should == "bar-2.0.jar"
     Zip::ZipFile.open(project("plugin:bar").package(:plugin).to_s) do |zip|
       zip.find_entry("plugin.xml").should_not be_nil
       zip.find_entry("plugin.properties").should_not be_nil
