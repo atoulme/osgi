@@ -78,6 +78,12 @@ module OSGi
         p_r.exclude("bin").exclude("bin/**")
         p_r.exclude("target/**").exclude("target")
         
+        
+        properties = ResourcesTask.define_task
+        properties.send :associate_with, project, :main
+        properties.from(File.join(project.base_dir, project.layout[:source, :main, :java])).
+          exclude("**/.*").exclude("**/*.java") if File.exists? File.join(project.base_dir, project.layout[:source, :main, :java])
+        
         manifest_location = File.join(project.base_dir, "META-INF", "MANIFEST.MF")
         manifest = project.manifest
         if File.exists?(manifest_location)
@@ -88,7 +94,7 @@ module OSGi
         manifest["Bundle-SymbolicName"] ||= project.id # if it was resetted to nil, we force the id to be added back.
         
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
-        plugin.with [compile.target, resources.target, p_r.target].compact
+        plugin.with [compile.target, resources.target, p_r.target, properties.target].compact
       end
     end
     

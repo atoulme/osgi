@@ -3,6 +3,6 @@ buildr:
   squashed: true
   url: git://github.com/apache/buildr.git
   type: git
-  revision: 8921555e5a898696b0349674dd158e5f6a4506b7
+  revision: 91d9ff0c739f59f8d075fe7622f8e0f6b78c44bc
   branch: trunk
   remote: braid/buildr
