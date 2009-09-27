@@ -22,9 +22,8 @@ module OSGi
   # Tasks representing bundle packaging should include this module
   # to be used by the buildr system properly.
   #
-  module BundlePackaging
-
-    class ::Buildr::Project
+ module PackagingAsSourcesExtension #:nodoc:
+    include Extension
 
       # Change the zip classifier for the sources produced by
       # a jar classifier.
@@ -63,10 +62,14 @@ module OSGi
       
       alias :package_as_sources_spec_old :package_as_sources_spec
       alias :package_as_sources_spec :package_as_osgi_pde_sources_spec
-    end
+
 
 
 
   end
 end
-
+module Buildr #:nodoc:
+  class Project #:nodoc:
+    include OSGi::PackagingAsSourcesExtension
+  end
+end
