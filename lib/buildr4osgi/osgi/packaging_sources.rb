@@ -38,12 +38,12 @@ module OSGi
     end
 
     # if the current packaging is a plugin or a bundle
-    # then call package_as_osgi_bundle_pde_sources
+    # then call package_as_eclipse_source_feature
     # if the current packaging is a feature
-    # then call package_as_feature_pde_sources
+    # then call package_as_eclipse_source_bundle
     def package_as_osgi_pde_sources(file_name)
       if project.send :is_packaging_feature
-         package_as_eclipse_sources_feature(file_name)
+         package_as_eclipse_source_feature(file_name)
         return
       end
       if project.send :is_packaging_osgi_bundle
@@ -66,8 +66,13 @@ module OSGi
     # package the same feature than the currently packaged feature except that
     # it contains the sources of the plugins that are packaged.
     # repackages the *-sources.jar that don't have the expected Eclipse-SourceBundle entry.
-    def package_as_eclipse_sources_feature(file_name)
-      #TODO
+    def package_as_eclipse_source_feature(file_name)
+      # TODO
+      #featurePackage = packages.each {|package| return package if package.is_a?(::OSGi::FeaturePackaging)}
+      #featureSourcePackage = featurePackage.source_feature
+      #featureSourcePackage.provider = featurePackage.provider unless featurePackage.provider.nil?
+      # if !featurePackage.sourceLicense.nill? featureSourcePackage.license = featurePackage.sourceLicense
+      # else featureSourcePackage.license = featurePackage.license
     end
     
     # generate an Eclipse-SourceBundle manifest from the manifest of a runtime plugin

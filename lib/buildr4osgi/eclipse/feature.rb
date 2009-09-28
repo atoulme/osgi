@@ -32,6 +32,8 @@ module Buildr4OSGi
     attr_accessor :update_sites
     attr_accessor :discovery_sites
     
+    attr_accessor :source_feature
+    
     # :nodoc:
     # When this module extends an object
     # the update_sites and discovery_sites are initialized as empty arrays.
@@ -240,6 +242,13 @@ PROPERTIES
         :"download-size" => size, :"install-size" => size, :unpack => false}
     end
   end
+  
+  # In charge of generating the sources feature.
+  class SourcesFeatureTask < FeatureTask
+    
+  end
+
+  
 
   # Methods added to project to package a project as a feature
   #
