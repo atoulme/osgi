@@ -63,6 +63,15 @@ module OSGi
       return false
     end
     
+    # returns true if the project defines at least one feature packaging.
+    # We keep this method protected and we will call it using send.
+    def is_packaging_feature()
+      packages.each {|package| return true if package.is_a?(::OSGi::FeaturePackaging)}
+      return false
+    end
+    
+    
+    
     def package_as_bundle(file_name)
       task = BundleTask.define_task(file_name).tap do |plugin|
         # Custom resource task to grab everything located at the root of the project
