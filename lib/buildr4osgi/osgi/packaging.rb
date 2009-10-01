@@ -61,16 +61,7 @@ module OSGi
     def is_packaging_osgi_bundle()
       packages.each {|package| return true if package.is_a?(::OSGi::BundlePackaging)}
       return false
-    end
-    
-    # returns true if the project defines at least one feature packaging.
-    # We keep this method protected and we will call it using send.
-    def is_packaging_feature()
-      packages.each {|package| return true if package.is_a?(::OSGi::FeaturePackaging)}
-      return false
-    end
-    
-    
+    end    
     
     def package_as_bundle(file_name)
       task = BundleTask.define_task(file_name).tap do |plugin|
@@ -100,19 +91,18 @@ module OSGi
           manifest = project.manifest.merge(read_m)
         end
         manifest["Bundle-Version"] = project.version # the version of the bundle packaged is ALWAYS the version of the project.
-        manifest["Bundle-SymbolicName"] ||= project.id # if it was resetted to nil, we force the id to be added back.
-        
+        manifest["Bundle-SymbolicName"] ||= project.name.split(":").last # if it was resetted to nil, we force the id to be added back.
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
         plugin.with [compile.target, resources.target, p_r.target, properties.target].compact
       end
     end
     
     def package_as_bundle_spec(spec) #:nodoc:
-      spec.merge(:type=>:jar)
+      spec.merge(:type=>:jar, :id => project.name.split(":").last)
     end
     
     before_define do |project|
-      project.manifest["Bundle-SymbolicName"] = project.id
+      project.manifest["Bundle-SymbolicName"] = project.name.split(":").last
       project.manifest["Bundle-Name"] = project.comment || project.name
       project.manifest["Bundle-Version"] = project.version
     end

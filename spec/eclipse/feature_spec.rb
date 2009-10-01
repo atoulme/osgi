@@ -232,7 +232,7 @@ describe Buildr4OSGi::FeatureTask, " when running" do
   end
   
   it 'should complain if one of the dependencies is not a plugin' do
-    @foo.package(:feature).plugins << SLF4J
+    @foo.package(:feature).plugins << LOG4J
     lambda { @foo.package(:feature).invoke}.should raise_error(
     /The dependency .* is not an Eclipse plugin: make sure the headers Bundle-SymbolicName and Bundle-Version are present in the manifest/)
   end
@@ -259,9 +259,11 @@ end
 describe Buildr4OSGi::FeatureTask, " package subprojects" do
   
   before do
+    Buildr::write "bar/src/main/java/Hello.java", "public class Hello {}"
     @container = define("container") do
       @bar = define("bar", :version => "1.0.0") do
-        package(:jar).with :manifest => {"Bundle-SymbolicName" => "bar", "Bundle-Version" => "1.0.0"}
+        package(:bundle)
+        package(:sources)
       end
     end
     @foo = define("foo", :version => "1.0.0")
@@ -288,6 +290,54 @@ describe Buildr4OSGi::FeatureTask, " package subprojects" do
       zip.find_entry("eclipse/features/foo_1.0.0/feature.properties").should_not be_nil
       zip.find_entry("eclipse/plugins/bar_1.0.0.jar").should_not be_nil
       zip.find_entry("eclipse/plugins/bar_1.0.0.jar").directory?.should be_false
+
+    end
+  end
+  
+  
+end
+
+
+describe Buildr4OSGi::FeatureTask, "packaged as SDK" do
+  
+  before do
+    Buildr::write "bar/src/main/java/Hello.java", "public class Hello {}"
+    @container = define("container") do
+      project.group = "grp"
+      @bar = define("bar", :version => "1.0.0") do
+        package(:bundle)
+        package(:sources)
+      end
+    end
+    @foo = define("foo", :version => "1.0.0") do
+      
+      f = package(:feature)
+      f.plugins.<< project("container:bar"), :unjarred => true
+      f.label = "My feature"
+      f.provider = "Acme Inc"
+      f.description = "The best feature ever"
+      f.changesURL = "http://example.com/changes"
+      f.license = "The license is too long to explain"
+      f.licenseURL = "http://example.com/license"
+      f.branding_plugin = "com.musal.ui"
+      f.update_sites << {:url => "http://example.com/update", :name => "My update site"}
+      f.discovery_sites = [{:url => "http://example.com/update2", :name => "My update site2"}, 
+        {:url => "http://example.com/upup", :name => "My update site in case"}]
+      package(:sources)
+    end
+  end
+  
+  it "should create a jar file with the subproject packaged as a jar inside it" do
+    @foo.package(:sources).invoke
+    feature_file = @foo.package(:sources).to_s
+    File.exists?(feature_file).should be_true
+    Zip::ZipFile.open(feature_file) do |zip|
+      zip.find_entry("eclipse/features/foo.sources_1.0.0/feature.xml").should_not be_nil
+      zip.find_entry("eclipse/features/foo.sources_1.0.0/feature.properties").should_not be_nil
+      zip.find_entry("eclipse/plugins/bar.sources_1.0.0.jar").should be_nil
+      zip.find_entry("eclipse/plugins/bar.sources_1.0.0").directory?.should be_true
+      zip.find_entry("eclipse/plugins/bar.sources_1.0.0/Hello.java").should_not be_nil
+      
     end
   end
   

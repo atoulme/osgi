@@ -17,22 +17,9 @@ module Buildr4OSGi
 
   module FeatureWriter
 
-    attr_accessor :feature_id
-    attr_accessor :version
-    attr_accessor :label
-    attr_accessor :copyright
-    attr_accessor :image
-    attr_accessor :provider
-    attr_accessor :description
-    attr_accessor :changesURL
-    attr_accessor :license
-    attr_accessor :licenseURL
-    attr_accessor :branding_plugin
-
-    attr_accessor :update_sites
-    attr_accessor :discovery_sites
+    VARS = [:feature_id, :version, :label, :copyright, :image, :provider, :description, :changesURL, :license, :licenseURL, :branding_plugin, :update_sites, :discovery_sites]
     
-    attr_accessor :source_feature
+    eval(VARS.collect{|field| "attr_accessor :#{field}"}.join("\n"))
     
     # :nodoc:
     # When this module extends an object
@@ -122,48 +109,40 @@ PROPERTIES
     
   end
   
-  
+  #Marker module common to all feature packaging tasks.
+  #Tasks including this module are recognized internally as tasks packaging features.
+  module FeaturePackaging
+    
+  end
   
   class FeatureTask < ::Buildr::Packaging::Java::JarTask
-    
+    include FeaturePackaging
     attr_accessor :plugins
     
     attr_accessor :feature_xml
     attr_accessor :feature_properties
+    
+    FeatureWriter::VARS << :plugins
+    FeatureWriter::VARS << :feature_xml
+    FeatureWriter::VARS << :feature_properties
+    FeatureWriter::VARS << :unjarred
 
     def initialize(*args) #:nodoc:
       super
       @unjarred = {}
       @plugins = ArrayAddWithOptions.new(@unjarred)
+      
     end
     
     def generateFeature(project)
-      feature_id ||= project.id
-      version ||= project.version
-      
       mkpath File.join(project.base_dir, 'target')
-      resolved_plugins = {}
-      unless @plugins.nil? || @plugins.empty?
-        plugins.flatten.each do |plugin|
-          
-          artifact = case 
-            when plugin.is_a?(String)
-              Buildr::artifact(plugin)
-            when plugin.is_a?(Buildr::Project)
-              Buildr::artifact(plugin.package(:plugin))
-            else 
-              plugin
-            end
-          info = adaptPlugin(artifact)
-          info[:unjarred] = @unjarred[plugin]
-          resolved_plugins[info] = artifact
-        end
-      end
+      resolved_plugins = create_resolved_plugins
+      enhance(resolved_plugins.values)
       unless feature_xml
         File.open(File.join(project.base_dir, 'target', 'feature.xml'), 'w') do |f|
           f.write(writeFeatureXml(resolved_plugins.keys, feature_xml.nil? && feature_properties.nil? ))
         end
-        path("eclipse/features/#{feature_id}_#{project.version}").include File.join(project.base_dir, 'target/feature.xml')
+        path("eclipse/features/#{feature_id}_#{project.version}").include File.join(project.base_dir, 'target', 'feature.xml')
       else
         path("eclipse/features/#{feature_id}_#{project.version}").include feature_xml
       end
@@ -171,9 +150,9 @@ PROPERTIES
         File.open(File.join(project.base_dir, 'target', 'feature.properties'), 'w') do |f|
           f.write(writeFeatureProperties())
         end
-        path("eclipse/features/#{project.id}_#{project.version}").include File.join(project.base_dir, 'target/feature.properties')
+        path("eclipse/features/#{feature_id}_#{project.version}").include File.join(project.base_dir, 'target', 'feature.properties')
       else
-        path("eclipse/features/#{project.id}_#{project.version}").include feature_properties if feature_properties
+        path("eclipse/features/#{feature_id}_#{project.version}").include feature_properties if feature_properties
       end
       
       resolved_plugins.each_pair do |info, plugin|  
@@ -187,29 +166,33 @@ PROPERTIES
     
     protected
     
-    class ArrayAddWithOptions < Array
-      
-      def initialize(options_hash) 
-        @options_hash = options_hash
+    def create_resolved_plugins
+      resolved_plugins = {}
+      unless @plugins.nil? || @plugins.empty?
+        plugins.flatten.each do |plugin|
+          
+          artifact = case 
+            when plugin.is_a?(String)
+              Buildr::artifact(plugin)
+            when plugin.is_a?(Buildr::Project)
+              Buildr::artifact(plugin.package(:plugin))
+            else 
+              plugin
+            end
+          info = adapt_plugin(artifact)
+          info[:unjarred] = @unjarred[plugin][:unjarred]
+          resolved_plugins[info] = artifact
+        end
       end
-      
-      def add_with_options(plugin, options = {:unjarred => false})
-        add(plugin)
-        @options_hash[plugin] = options[:unjarred] if options[:unjarred]
-      end
-      
-      alias :add :<<
-      alias :<< :add_with_options
-
+      resolved_plugins
     end
     
-    def adaptPlugin(plugin)
+    def adapt_plugin(plugin)
       name = nil
       size = nil
       version = nil
       group = nil
       if plugin.is_a? Buildr::Project
-        plugin.package(:plugin).invoke #make sure it is present.
         size = File.size(plugin.package(:plugin).to_s)
         name = plugin.package(:plugin).manifest.main["Bundle-SymbolicName"]
         version = plugin.package(:plugin).manifest.main["Bundle-Version"]
@@ -240,11 +223,63 @@ PROPERTIES
       end
       return {:id => name, :group => group, :version => version, 
         :"download-size" => size, :"install-size" => size, :unpack => false}
-    end
+    end  
   end
   
-  # In charge of generating the sources feature.
-  class SourcesFeatureTask < FeatureTask
+  class ArrayAddWithOptions < Array
+
+    def initialize(options_hash) 
+      @options_hash = options_hash
+    end
+
+    def add_with_options(*args)
+      plugin = args.shift
+      options = {}
+      while(!args.empty?)
+        option = args.shift
+        case
+        when option.is_a?(Hash)
+          options.merge!(option)
+        when option.is_a?(Symbol)
+          options.merge!({option => true})
+        else
+          raise "Impossible to find what this option means: #{option}"
+        end
+      end
+      add(plugin)
+      @options_hash[plugin] = options
+    end
+
+    alias :add :<<
+    alias :<< :add_with_options
+
+  end
+  
+  
+  module SDKFeatureEnabler
+    
+    def create_resolved_plugins
+      resolved_plugins = {}
+      unless @plugins.nil? || @plugins.empty?
+        plugins.flatten.each do |plugin|
+          
+          artifact = case 
+            when plugin.is_a?(String)
+              Buildr::artifact(plugin)
+            when plugin.is_a?(Buildr::Project)
+              Buildr::artifact(plugin.package(:sources))
+            else 
+              plugin
+            end
+          artifact[:classifier] = "sources" if artifact.is_a?(Buildr::Artifact)
+          info = adapt_plugin(artifact)
+          info[:unjarred] = @unjarred[plugin][:unjarred]
+          resolved_plugins[info] = artifact
+        end
+      end
+      resolved_plugins
+    end
+    
     
   end
 
@@ -256,17 +291,53 @@ PROPERTIES
     include Extension
 
     protected
+    
+    # returns true if the project defines at least one feature packaging.
+    # We keep this method protected and we will call it using send.
+    def is_packaging_feature()
+      packages.each {|package| return true if package.is_a?(::Buildr4OSGi::FeaturePackaging)}
+      false
+    end
 
     def package_as_feature(file_name)
       task = FeatureTask.define_task(file_name)
       task.extend FeatureWriter
-      task.enhance do |feature|
-        feature.generateFeature(project)
+      task.feature_id ||= project.id
+      task.version ||= project.version
+      task.enhance do |featureTask|
+        featureTask.generateFeature(project)
       end
+      task
     end
     
     def package_as_feature_spec(spec) #:nodoc:
       spec.merge(:type=>:zip)
+    end
+    
+    def package_as_SDK_feature(file_name)
+      return package_as_sources_before_SDK_feature(file_name) unless is_packaging_feature
+      featurePackage = packages.select {|package| package.is_a?(::Buildr4OSGi::FeaturePackaging)}.first.dup
+      sdkPackage = FeatureTask.define_task(file_name)
+      sdkPackage.enhance do |featureTask|
+        featureTask.generateFeature(project)
+      end
+      sdkPackage.extend FeatureWriter
+      sdkPackage.extend SDKFeatureEnabler
+      
+      FeatureWriter::VARS.each do |ivar|
+        value = featurePackage.instance_variable_get("@#{ivar}")
+        new_value = value.clone rescue value
+        sdkPackage.instance_variable_set("@#{ivar}", new_value)
+      end
+      
+      sdkPackage.feature_id += ".sources"
+      sdkPackage
+    end
+    
+    def package_as_SDK_feature_spec(spec) #:nodoc:
+      spec = package_as_sources_spec_before_SDK_feature(spec)
+      spec.merge!(:type=>:zip, :classifier => "sources") if is_packaging_feature
+      spec
     end
   end
 
@@ -276,5 +347,11 @@ end
 module Buildr #:nodoc:
   class Project #:nodoc:
     include Buildr4OSGi::ActAsFeature
+    
+    alias :package_as_sources_before_SDK_feature :package_as_sources
+    alias :package_as_sources :package_as_SDK_feature
+    
+    alias :package_as_sources_spec_before_SDK_feature :package_as_sources_spec
+    alias :package_as_sources_spec :package_as_SDK_feature_spec
   end
 end

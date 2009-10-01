@@ -19,22 +19,19 @@ module OSGi
   # This module is used to identify the packaging task
   # that represent a bundle packaging.
   #
-  # Tasks representing bundle packaging should include this module
-  # to be used by the buildr system properly.
-  #
   module PackagingAsSourcesExtension #:nodoc:
     include Extension
 
     # Change the zip classifier for the sources produced by
     # a jar classifier unless we are packaking a feature right now.
-    def package_as_sources_respec(spec) #:nodoc:
-      if self.send :is_packaging_feature
-         spec[:type] = :zip
-         spec
-        return
-      end
-       spec[:type] = :jar
-       spec
+    def package_as_sources_spec_source_extension(spec) #:nodoc:
+      spec = package_as_sources_spec_before_source_extension(spec)
+      if is_packaging_osgi_bundle
+        spec[:type] = :jar
+      end 
+      p "in respec"
+      p spec
+      spec
     end
 
     # if the current packaging is a plugin or a bundle
@@ -42,14 +39,8 @@ module OSGi
     # if the current packaging is a feature
     # then call package_as_eclipse_source_bundle
     def package_as_osgi_pde_sources(file_name)
-      if project.send :is_packaging_feature
-         package_as_eclipse_source_feature(file_name)
-        return
-      end
-      if project.send :is_packaging_osgi_bundle
-         package_as_eclipse_source_bundle(file_name)
-        return
-      end
+      return package_as_eclipse_source_bundle(file_name) if project.send :is_packaging_osgi_bundle
+      package_as_sources_old(file_name)
     end
 
 
@@ -63,34 +54,23 @@ module OSGi
       package_as_sources_old(file_name).with :manifest => sourcesManifest
     end
     
-    # package the same feature than the currently packaged feature except that
-    # it contains the sources of the plugins that are packaged.
-    # repackages the *-sources.jar that don't have the expected Eclipse-SourceBundle entry.
-    def package_as_eclipse_source_feature(file_name)
-      # TODO
-      #featurePackage = packages.each {|package| return package if package.is_a?(::OSGi::FeaturePackaging)}
-      #featureSourcePackage = featurePackage.source_feature
-      #featureSourcePackage.provider = featurePackage.provider unless featurePackage.provider.nil?
-      # if !featurePackage.sourceLicense.nill? featureSourcePackage.license = featurePackage.sourceLicense
-      # else featureSourcePackage.license = featurePackage.license
-    end
     
     # generate an Eclipse-SourceBundle manifest from the manifest of a runtime plugin
     # Assumes that there are no jars inside the runtime plugin.
     def create_source_bundle_manifest(pluginManifest)
       #remove the properties after the sym-name such as ';singleton=true'
-      bundleSymName = pluginManifest["Bundle-SymbolicName"].split(';')[0]
+      bundleSymName = pluginManifest["Bundle-SymbolicName"].split(';').first
       bundleVersion = pluginManifest["Bundle-Version"]
       sourcesManifest = ::Buildr::Packaging::Java::Manifest.new(nil)
-      sourcesManifest.main["Bundle-ManifestVersion"]="2"
-      sourcesManifest.main["Eclipse-SourceBundle"]=bundleSymName+";version=\""+bundleVersion+"\";roots:=\".\""
-      sourcesManifest.main["Bundle-SymbolicName"]=bundleSymName+".sources"
-      sourcesManifest.main["Bundle-Name"]=pluginManifest["Bundle-Name"]+" sources"
-      sourcesManifest.main["Bundle-Version"]=bundleVersion
+      sourcesManifest.main["Bundle-ManifestVersion"] = "2"
+      sourcesManifest.main["Eclipse-SourceBundle"] = "#{bundleSymName};version=\"#{bundleVersion}\";roots:=\".\""
+      sourcesManifest.main["Bundle-SymbolicName"] = bundleSymName + ".sources"
+      sourcesManifest.main["Bundle-Name"] += " sources" if sourcesManifest.main["Bundle-Name"] 
+      sourcesManifest.main["Bundle-Version"] = bundleVersion
       sourcesManifest.main["Bundle-Vendor"] = pluginManifest["Bundle-Vendor"] unless pluginManifest["Bundle-Vendor"].nil?
       #TODO: ability to define a different license for the sources.
       sourcesManifest.main["Bundle-License"] = pluginManifest["Bundle-License"] unless pluginManifest["Bundle-License"].nil?
-     return sourcesManifest
+      return sourcesManifest
     end
     
   end
@@ -101,6 +81,8 @@ module Buildr #:nodoc:
     include OSGi::PackagingAsSourcesExtension
     
     protected 
+    alias :package_as_sources_spec_before_source_extension :package_as_sources_spec 
+    alias :package_as_sources_spec :package_as_sources_spec_before_source_extension
     alias :package_as_sources_old :package_as_sources
     alias :package_as_sources :package_as_osgi_pde_sources
   end
