@@ -53,7 +53,7 @@ module Buildr4OSGi #:nodoc:
             manifest = project.manifest.merge(read_m)
           end
           manifest["Bundle-Version"] = project.version # the version of the bundle packaged is ALWAYS the version of the project.
-          manifest["Bundle-SymbolicName"] ||= project.id # if it was resetted to nil, we force the id to be added back.
+          manifest["Bundle-SymbolicName"] ||= project.id.split(":").last # if it was resetted to nil, we force the id to be added back.
 
           plugin.with :manifest=> manifest, :meta_inf=>meta_inf
           plugin.with [compile.target, resources.target].compact

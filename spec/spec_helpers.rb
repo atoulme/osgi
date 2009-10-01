@@ -35,10 +35,12 @@ unless defined?(SpecHelpers)
   HELPERS_REPOSITORY = File.expand_path(File.join(File.dirname(__FILE__), "tmp", "remote"))
   Buildr::repositories.local = HELPERS_REPOSITORY
   slf4j = Buildr::group(%w{ slf4j-api slf4j-log4j12 jcl104-over-slf4j }, :under=>"org.slf4j", :version=>"1.5.8")
+  LOG4J = "log4j:log4j:jar:1.2.15"
   SLF4J = slf4j
   DEBUG_UI = "eclipse:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341"
   Buildr::repositories.remote << "http://www.intalio.org/public/maven2"
   artifact(DEBUG_UI).invoke # download it once!
+  artifact(LOG4J).invoke
   for lib in SLF4J do
     artifact(lib).invoke
     artifact(artifact(lib).to_hash.merge(:classifier => "sources")).invoke
