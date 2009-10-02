@@ -1,2 +1,8 @@
---- {}
-
+--- 
+buildr: 
+  squashed: true
+  url: git://git.apache.org/buildr.git
+  type: git
+  revision: 91d9ff0c739f59f8d075fe7622f8e0f6b78c44bc
+  branch: trunk
+  remote: braid/buildr
