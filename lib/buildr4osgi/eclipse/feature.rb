@@ -271,7 +271,7 @@ PROPERTIES
             else 
               plugin
             end
-          artifact[:classifier] = "sources" if artifact.is_a?(Buildr::Artifact)
+          artifact = Buildr::artifact(artifact.to_hash.merge(:classifier => "sources")) if artifact.is_a?(Buildr::Artifact)
           info = adapt_plugin(artifact)
           info[:unjarred] = @unjarred[plugin][:unjarred] unless @unjarred[plugin].nil?
           resolved_plugins[info] = artifact
