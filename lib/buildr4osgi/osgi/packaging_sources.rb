@@ -46,7 +46,7 @@ module OSGi
     def package_as_sources_spec_source_extension(spec) #:nodoc:
       spec = package_as_sources_spec_before_source_extension(spec)
       if is_packaging_osgi_bundle
-        spec[:type] = :jar
+        spec.merge!(:type=>:jar, :id => name.split(":").last)
       end 
       spec
     end
