@@ -361,7 +361,7 @@ PROPERTIES
       spec.merge(:type=>:zip, :id => name.split(":").last)
     end
     
-    def package_as_SDK_feature(file_name)
+    def package_as_SDK_feature(file_name) #:nodoc:
       return package_as_sources_before_SDK_feature(file_name) unless is_packaging_feature
       featurePackage = packages.select {|package| package.is_a?(::Buildr4OSGi::FeaturePackaging)}.first.dup
       sdkPackage = FeatureTask.define_task(file_name)
@@ -383,7 +383,7 @@ PROPERTIES
     
     def package_as_SDK_feature_spec(spec) #:nodoc:
       spec = package_as_sources_spec_before_SDK_feature(spec)
-      spec.merge!(:type=>:zip, :classifier => "sources") if is_packaging_feature
+      spec.merge!(:type=>:zip, :id => name.split(":").last, :classifier => "sources") if is_packaging_feature
       spec
     end
   end
