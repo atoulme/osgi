@@ -39,7 +39,10 @@ PLUGIN_XML
 marker=Hello marker
 PLUGIN_PROPERTIES
     Buildr::write "src/main/java/Main.java", "public class Main { public static void main(String[] args) {}}"
-    @plugin = define("plugin", :version => "1.0.0.001")
+    @plugin = define("plugin", :version => "1.0.0.001") do
+      package(:sources)
+      package(:plugin)
+    end
     @path = @plugin.package(:sources).to_s
     
   end

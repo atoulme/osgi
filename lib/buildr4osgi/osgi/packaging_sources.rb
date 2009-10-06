@@ -48,8 +48,6 @@ module OSGi
       if is_packaging_osgi_bundle
         spec[:type] = :jar
       end 
-      p "in respec"
-      p spec
       spec
     end
 
@@ -81,7 +79,7 @@ module Buildr #:nodoc:
     
     protected 
     alias :package_as_sources_spec_before_source_extension :package_as_sources_spec 
-    alias :package_as_sources_spec :package_as_sources_spec_before_source_extension
+    alias :package_as_sources_spec :package_as_sources_spec_source_extension
     alias :package_as_sources_old :package_as_sources
     alias :package_as_sources :package_as_osgi_pde_sources
   end
