@@ -273,7 +273,7 @@ PROPERTIES
             end
           artifact[:classifier] = "sources" if artifact.is_a?(Buildr::Artifact)
           info = adapt_plugin(artifact)
-          info[:unjarred] = @unjarred[plugin][:unjarred]
+          info[:unjarred] = @unjarred[plugin][:unjarred] unless @unjarred[plugin].nil?
           resolved_plugins[info] = artifact
         end
       end
