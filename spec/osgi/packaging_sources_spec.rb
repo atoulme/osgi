@@ -48,6 +48,7 @@ PLUGIN_PROPERTIES
     define_project
     @plugin.package(:sources).invoke
     File.exists?(@path).should be_true
+    @path.to_s.should include(".jar")
     Zip::ZipFile.open(@path) do |zip|
       zip.find_entry("Main.java").should_not be_nil
     end
