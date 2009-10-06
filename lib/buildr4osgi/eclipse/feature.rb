@@ -159,7 +159,9 @@ PROPERTIES
         unless info[:manifest].nil?
           cp plugin.to_s, project.path_to("target/#{plugin.id}_#{plugin.version}.jar")
           plugin = project.path_to("target/#{plugin.id}_#{plugin.version}.jar")
-          ::Buildr::Packaging::Java::Manifest.update_manifest(plugin) {|manifest| manifest.main.merge! info[:manifest]}
+          ::Buildr::Packaging::Java::Manifest.update_manifest(plugin) {|manifest|
+            manifest.main.merge! info[:manifest]
+          }
         end
         
         if info[:unjarred]
@@ -199,40 +201,47 @@ PROPERTIES
       version = nil
       group = nil
       repackage = nil
+      sourceBundle = nil
       if plugin.is_a? Buildr::Project
         size = File.size(plugin.package(:plugin).to_s)
         name = plugin.package(:plugin).manifest.main["Bundle-SymbolicName"]
         version = plugin.package(:plugin).manifest.main["Bundle-Version"]
-        group = plugin.group   
+        group = plugin.group
+        sourceBundle = plugin.package(:plugin).manifest.main["Eclipse-SourceBundle"]
       else
         plugin.invoke
+        if !File.exist?(plugin.to_s) and plugin.classifier.to_s == 'sources'
+          #make sure the artifact was downloaded.
+          #if the artifact is for the sources feature and it could not be located,
+          #don't crash. should we put something in the manifest?
+          return nil
+        end
         Zip::ZipFile.open(plugin.to_s) do |zip|
           entry = zip.find_entry("META-INF/MANIFEST.MF")
           unless entry.nil?
             manifest = Manifest.read(zip.read("META-INF/MANIFEST.MF"))
-            bundle = ::OSGi::Bundle.fromManifest(manifest, plugin.to_s)
-            unless bundle.nil?
-              name = bundle.name
-              version = bundle.version
+            sourceBundle = manifest.first["Eclipse-SourceBundle"].keys.first.strip unless manifest.first["Eclipse-SourceBundle"].nil?
+            if !manifest.first["Bundle-SymbolicName"].nil?
+              bundle = ::OSGi::Bundle.fromManifest(manifest, plugin.to_s)
+              unless bundle.nil?
+                name = bundle.name
+                version = bundle.version
+              end
             end
           end
         end
         group = plugin.to_hash[:group]
         size = File.size(plugin.to_s)
       end
-      if (name.nil? || version.nil?)
+      if plugin.classifier.to_s == 'sources' and (sourceBundle.nil? || name.nil? || version.nil?)
         # Try, if possible, to get the name and the version from the original binaries then.
-        if(plugin.respond_to?(:to_hash) && plugin.to_hash[:classifier].to_s == "sources")
-          info = adapt_plugin(Buildr::artifact(plugin.to_hash.merge(:classifier => nil, :type => :jar)))
-          name = info[:id] + ".sources"
-          version = info[:version]
-          # well done, now we really just need to make sure the headers are also placed in the manifest of the sources.
-          manifest = {}
-          manifest["Bundle-SymbolicName"] = name
-          manifest["Bundle-Version"] = version
-          manifest["Eclipse-SourceBundle"] = "#{info[:id]};version=\"#{info[:version]}\";roots:=\".\""
-          repackage = manifest
-        end
+        runtimeArtifact = Buildr::artifact(plugin.to_hash.merge(:classifier => nil, :type => :jar))
+        runtimeManifest = extraPackagedManifest(runtimeArtifact)
+        manifest = ::OSGi::create_source_bundle_manifest(runtimeManifest)
+        repackage = {}
+        manifest.main.each {|key,value| repackage[key] = value }
+        name = repackage["Bundle-SymbolicName"].split(';').first
+        version = repackage["Bundle-Version"]
       end
       if (name.nil? || version.nil?)
         raise "The dependency #{plugin} is not an Eclipse plugin: make sure the headers " +
@@ -244,7 +253,22 @@ PROPERTIES
       end
       return {:id => name, :group => group, :version => version, 
         :"download-size" => size, :"install-size" => size, :unpack => false, :manifest => repackage}
-    end  
+    end
+    
+    #returns the META-INF/MANIFEST.MF file for something that
+    #is either an artifact either a the package(:jar) of a buildr project.
+    def extraPackagedManifest(plugin)
+      if plugin.is_a? Buildr::Project
+        return plugin.package(:plugin).manifest
+      else #an artifact
+        plugin.invoke
+        javaManifest = ::Buildr::Packaging::Java::Manifest.from_zip(plugin.to_s)
+        hash = {} #need to make it a hash:
+        javaManifest.main.each {|key,value| hash[key] = value }
+        return hash
+      end
+    end
+    
   end
   
   class ArrayAddWithOptions < Array
@@ -294,8 +318,10 @@ PROPERTIES
             end
           artifact = Buildr::artifact(artifact.to_hash.merge(:classifier => "sources")) if artifact.is_a?(Buildr::Artifact)
           info = adapt_plugin(artifact)
-          info[:unjarred] = @unjarred[plugin][:unjarred] unless @unjarred[plugin].nil?
-          resolved_plugins[info] = artifact
+          if !info.nil? 
+            info[:unjarred] = @unjarred[plugin][:unjarred] unless @unjarred[plugin].nil?
+            resolved_plugins[info] = artifact
+          end
         end
       end
       resolved_plugins

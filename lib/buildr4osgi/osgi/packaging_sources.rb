@@ -15,6 +15,25 @@
 
 module OSGi
   
+    # generate an Eclipse-SourceBundle manifest from the manifest of a runtime plugin
+    # Assumes that there are no jars inside the runtime plugin.
+    def self.create_source_bundle_manifest(pluginManifest)
+      #remove the properties after the sym-name such as ';singleton=true'
+      bundleSymName = pluginManifest["Bundle-SymbolicName"].split(';').first
+      bundleVersion = pluginManifest["Bundle-Version"]
+      sourcesManifest = ::Buildr::Packaging::Java::Manifest.new(nil)
+      sourcesManifest.main["Bundle-ManifestVersion"] = "2"
+      sourcesManifest.main["Eclipse-SourceBundle"] = "#{bundleSymName};version=\"#{bundleVersion}\";roots:=\".\""
+      sourcesManifest.main["Bundle-SymbolicName"] = bundleSymName + ".sources"
+      sourcesManifest.main["Bundle-Name"] += " sources" if sourcesManifest.main["Bundle-Name"] 
+      sourcesManifest.main["Bundle-Version"] = bundleVersion
+      sourcesManifest.main["Bundle-Vendor"] = pluginManifest["Bundle-Vendor"] unless pluginManifest["Bundle-Vendor"].nil?
+      #TODO: ability to define a different license for the sources.
+      sourcesManifest.main["Bundle-License"] = pluginManifest["Bundle-License"] unless pluginManifest["Bundle-License"].nil?
+      return sourcesManifest
+    end
+
+  
   #:nodoc:
   # This module is used to identify the packaging task
   # that represent a bundle packaging.
@@ -50,29 +69,9 @@ module OSGi
     # file_name
     def package_as_eclipse_source_bundle(file_name)
       pluginManifest = package(:plugin).manifest
-      sourcesManifest = create_source_bundle_manifest(pluginManifest)
+      sourcesManifest = ::OSGi::create_source_bundle_manifest(pluginManifest)
       package_as_sources_old(file_name).with :manifest => sourcesManifest
-    end
-    
-    
-    # generate an Eclipse-SourceBundle manifest from the manifest of a runtime plugin
-    # Assumes that there are no jars inside the runtime plugin.
-    def create_source_bundle_manifest(pluginManifest)
-      #remove the properties after the sym-name such as ';singleton=true'
-      bundleSymName = pluginManifest["Bundle-SymbolicName"].split(';').first
-      bundleVersion = pluginManifest["Bundle-Version"]
-      sourcesManifest = ::Buildr::Packaging::Java::Manifest.new(nil)
-      sourcesManifest.main["Bundle-ManifestVersion"] = "2"
-      sourcesManifest.main["Eclipse-SourceBundle"] = "#{bundleSymName};version=\"#{bundleVersion}\";roots:=\".\""
-      sourcesManifest.main["Bundle-SymbolicName"] = bundleSymName + ".sources"
-      sourcesManifest.main["Bundle-Name"] += " sources" if sourcesManifest.main["Bundle-Name"] 
-      sourcesManifest.main["Bundle-Version"] = bundleVersion
-      sourcesManifest.main["Bundle-Vendor"] = pluginManifest["Bundle-Vendor"] unless pluginManifest["Bundle-Vendor"].nil?
-      #TODO: ability to define a different license for the sources.
-      sourcesManifest.main["Bundle-License"] = pluginManifest["Bundle-License"] unless pluginManifest["Bundle-License"].nil?
-      return sourcesManifest
-    end
-    
+    end    
   end
 end
 
