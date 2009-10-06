@@ -155,7 +155,13 @@ PROPERTIES
         path("eclipse/features/#{feature_id}_#{project.version}").include feature_properties if feature_properties
       end
       
-      resolved_plugins.each_pair do |info, plugin|  
+      resolved_plugins.each_pair do |info, plugin| 
+        unless info[:manifest].nil?
+          cp plugin.to_s, project.path_to("target/#{plugin.id}_#{plugin.version}.jar")
+          plugin = project.path_to("target/#{plugin.id}_#{plugin.version}.jar")
+          ::Buildr::Packaging::Java::Manifest.update_manifest(plugin) {|manifest| manifest.main.merge! info[:manifest]}
+        end
+        
         if info[:unjarred]
           merge(plugin, :path => "eclipse/plugins/#{info[:id]}_#{info[:version]}")
         else
@@ -192,6 +198,7 @@ PROPERTIES
       size = nil
       version = nil
       group = nil
+      repackage = nil
       if plugin.is_a? Buildr::Project
         size = File.size(plugin.package(:plugin).to_s)
         name = plugin.package(:plugin).manifest.main["Bundle-SymbolicName"]
@@ -214,6 +221,20 @@ PROPERTIES
         size = File.size(plugin.to_s)
       end
       if (name.nil? || version.nil?)
+        # Try, if possible, to get the name and the version from the original binaries then.
+        if(plugin.respond_to?(:to_hash) && plugin.to_hash[:classifier].to_s == "sources")
+          info = adapt_plugin(Buildr::artifact(plugin.to_hash.merge(:classifier => nil, :type => :jar)))
+          name = info[:id] + ".sources"
+          version = info[:version]
+          # well done, now we really just need to make sure the headers are also placed in the manifest of the sources.
+          manifest = {}
+          manifest["Bundle-SymbolicName"] = name
+          manifest["Bundle-Version"] = version
+          manifest["Eclipse-SourceBundle"] = "#{info[:id]};version=\"#{info[:version]}\";roots:=\".\""
+          repackage = manifest
+        end
+      end
+      if (name.nil? || version.nil?)
         raise "The dependency #{plugin} is not an Eclipse plugin: make sure the headers " +
           "Bundle-SymbolicName and Bundle-Version are present in the manifest" 
       end
@@ -222,7 +243,7 @@ PROPERTIES
         size ||= 0
       end
       return {:id => name, :group => group, :version => version, 
-        :"download-size" => size, :"install-size" => size, :unpack => false}
+        :"download-size" => size, :"install-size" => size, :unpack => false, :manifest => repackage}
     end  
   end
   

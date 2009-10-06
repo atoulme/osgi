@@ -343,3 +343,50 @@ describe Buildr4OSGi::FeatureTask, "packaged as SDK" do
   
   
 end
+
+describe Buildr4OSGi::FeatureTask, "packaged as SDK, detecting the OSGi headers from the original build" do
+  
+  before do
+    Buildr::write "bar/src/main/java/Hello.java", "public class Hello {}"
+    @container = define("container") do
+      project.group = "grp"
+      @bar = define("bar", :version => "1.0.0") do
+        package(:jar).with :manifest => {"Bundle-SymbolicName" => "myName", "Bundle-Version" => "3.2.1"}
+        package(:sources)
+      end
+    end
+    @foo = define("foo", :version => "1.0.0") do
+      
+      f = package(:feature)
+      f.plugins.<< project("container:bar"), :unjarred => true
+      f.label = "My feature"
+      f.provider = "Acme Inc"
+      f.description = "The best feature ever"
+      f.changesURL = "http://example.com/changes"
+      f.license = "The license is too long to explain"
+      f.licenseURL = "http://example.com/license"
+      f.branding_plugin = "com.musal.ui"
+      f.update_sites << {:url => "http://example.com/update", :name => "My update site"}
+      f.discovery_sites = [{:url => "http://example.com/update2", :name => "My update site2"}, 
+        {:url => "http://example.com/upup", :name => "My update site in case"}]
+      package(:sources)
+    end
+  end
+  
+  it "should create a jar file with the subproject packaged as a jar inside it" do
+    @foo.package(:sources).invoke
+    feature_file = @foo.package(:sources).to_s
+    File.exists?(feature_file).should be_true
+    Zip::ZipFile.open(feature_file) do |zip|
+      zip.find_entry("eclipse/features/foo.sources_1.0.0/feature.xml").should_not be_nil
+      zip.find_entry("eclipse/features/foo.sources_1.0.0/feature.properties").should_not be_nil
+      zip.find_entry("eclipse/plugins/myName.sources_3.2.1.jar").should be_nil
+      zip.find_entry("eclipse/plugins/myName.sources_3.2.1").directory?.should be_true
+      zip.find_entry("eclipse/plugins/myName.sources_3.2.1/Hello.java").should_not be_nil
+      zip.find_entry("eclipse/plugins/myName.sources_3.2.1/META-INF/MANIFEST.MF").should_not be_nil
+      zip.read("eclipse/plugins/myName.sources_3.2.1/META-INF/MANIFEST.MF").should match(/Bundle-SymbolicName: myName\.sources/)
+    end
+  end
+  
+  
+end
