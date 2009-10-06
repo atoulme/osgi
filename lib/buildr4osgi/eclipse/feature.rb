@@ -180,7 +180,7 @@ PROPERTIES
               plugin
             end
           info = adapt_plugin(artifact)
-          info[:unjarred] = @unjarred[plugin][:unjarred]
+          info[:unjarred] = @unjarred[plugin][:unjarred] unless @unjarred[plugin].nil?
           resolved_plugins[info] = artifact
         end
       end
