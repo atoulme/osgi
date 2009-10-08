@@ -39,7 +39,7 @@ module OSGi
       # Otherwise, empty unzip creates target as a file when touching.
       mkpath target.to_s
       zip_file_path = zip_file.to_s
-      if zip_file_path.match /\.[t?]gz$/
+      if zip_file_path.match /\.[t?]gz$/ or zip_file_path.match /\.tar\.gz$/
         #un-tar.gz
         @paths.each do |path, patterns|
           patterns.include = ['*'] if patterns.include.nil?
