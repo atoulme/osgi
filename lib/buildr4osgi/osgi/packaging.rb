@@ -25,7 +25,74 @@ module OSGi
   module BundlePackaging
     
   end
+  
+  #monkey patch the Unzip task to support unzipping tgz
+  #TODO: find out how to apply the patterns (include/exclude) and move this to buildr eventually
+  class Buildr::Unzip
+    def extract
+      # If no paths specified, then no include/exclude patterns
+      # specified. Nothing will happen unless we include all files.
+      if @paths.empty?
+        @paths[nil] = FromPath.new(self, nil)
+      end
+
+      # Otherwise, empty unzip creates target as a file when touching.
+      mkpath target.to_s
+      zip_file_path = zip_file.to_s
+      if zip_file_path.match /\.[t?]gz$/
+        #un-tar.gz
+        @paths.each do |path, patterns|
+          patterns.include = ['*'] if patterns.include.nil?
+          patterns.exclude = [] if patterns.exclude.nil?
+        end
+        Zlib::GzipReader.open(zip_file_path) { |tar|
+          Archive::Tar::Minitar::Input.open(tar) do |inp|
+          inp.each do |entry|
+            if included?(entry.full_name)
+              trace "Extracting #{entry.full_name}"
+              inp.extract_entry(target.to_s, entry)
+            end
+          end
+        end
+        }
+      else
+        Zip::ZipFile.open(zip_file.to_s) do |zip|
+          entries = zip.collect
+          @paths.each do |path, patterns|
+            patterns.map(entries).each do |dest, entry|
+              next if entry.directory?
+              dest = File.expand_path(dest, target.to_s)
+              trace "Extracting #{dest}"
+              mkpath File.dirname(dest) rescue nil
+              entry.restore_permissions = true
+              entry.extract(dest) { true }
+            end
+          end
+        end
+      end
+      # Let other tasks know we updated the target directory.
+      touch target.to_s
+    end
     
+    #reads the includes/excludes and apply them to the entry_name
+    def included?(entry_name)
+      @paths.each do |path, patterns|
+        return true if path.nil?
+        if entry_name =~ /^#{path}/
+          short = entry_name.sub(path, '')
+          if patterns.include.any? { |pattern| File.fnmatch(pattern, entry_name) } &&
+            !patterns.exclude.any? { |pattern| File.fnmatch(pattern, entry_name) }
+           # trace "tar_entry.full_name " + entry_name + " is included"
+            return true
+          end
+        end
+      end
+     # trace "tar_entry.full_name " + entry_name + " is excluded"
+      return false
+    end
+    
+  end
+
   
   #
   # The task to package a project
