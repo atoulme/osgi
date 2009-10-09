@@ -160,6 +160,14 @@ PROPERTIES
           cp plugin.to_s, project.path_to("target/#{plugin.id}_#{plugin.version}.jar")
           plugin = project.path_to("target/#{plugin.id}_#{plugin.version}.jar")
           ::Buildr::Packaging::Java::Manifest.update_manifest(plugin) {|manifest|
+            #applies to sources bundles only: if it was the runtime manifest, then remove it altogether:
+            unless manifest.main["Bundle-SymbolicName"].nil?
+              #there was a symbolic name: assume this manifest was the runtime one.
+              #we don't want OSGi to confuse the runtime jar with the sources.
+              #ideally we would want keep an archive of the original
+              #runtime manifest as for example MANIFEST.MF.source
+              manifest.main.clear
+            end
             manifest.main.merge! info[:manifest]
           }
         end
