@@ -30,7 +30,10 @@ module Buildr
         eclipse = project.eclipse
 
         # smart defaults
-        if eclipse.natures.empty? && ((File.exists? project.path_to("plugin.xml")) || (File.exists? project.path_to("OSGI-INF")))
+        if eclipse.natures.empty? && (
+            (File.exists? project.path_to("plugin.xml")) ||
+            (File.exists? project.path_to("OSGI-INF")) ||
+            (File.exists?(project.path_to("META-INF/MANIFEST.MF")) && File.read(project.path_to("META-INF/MANIFEST.MF")).match(/^Bundle-SymbolicName:/)))
           eclipse.natures = [NATURE, Buildr::Eclipse::Java::NATURE]
           eclipse.classpath_containers = [CONTAINER, Buildr::Eclipse::Java::CONTAINER] if eclipse.classpath_containers.empty?
           eclipse.builders = BUILDERS + [Buildr::Eclipse::Java::BUILDER] if eclipse.builders.empty?
@@ -49,12 +52,12 @@ module Buildr
             index = eclipse.classpath_containers.index(Buildr::Eclipse::Java::CONTAINER) || -1
             eclipse.classpath_containers = eclipse.classpath_containers.insert(index, CONTAINER)
           end
-          unless (eclipse.builders.include?(BUILDER[0]) && eclipse.builders.include?(BUILDER[1]))
+          unless (eclipse.builders.include?(BUILDERS[0]) && eclipse.builders.include?(BUILDERS[1]))
             # plugin builder must be before java builder
             index = eclipse.classpath_containers.index(Buildr::Eclipse::Java::BUILDER) || -1
-            eclipse.builders = eclipse.builders.insert(index, BUILDER[1]) unless eclipse.builders.include? BUILDER[1]
-            index = eclipse.classpath_containers.index(BUILDER[1]) || -1
-            eclipse.builders = eclipse.builders.insert(index, BUILDER[0]) unless eclipse.builders.include? BUILDER[0]
+            eclipse.builders = eclipse.builders.insert(index, BUILDERS[1]) unless eclipse.builders.include? BUILDERS[1]
+            index = eclipse.classpath_containers.index(BUILDERS[1]) || -1
+            eclipse.builders = eclipse.builders.insert(index, BUILDERS[0]) unless eclipse.builders.include? BUILDERS[0]
           end
         end
       end
