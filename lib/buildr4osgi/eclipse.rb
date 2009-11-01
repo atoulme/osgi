@@ -15,3 +15,4 @@
 
 require 'buildr4osgi/eclipse/plugin'
 require 'buildr4osgi/eclipse/feature'
+require 'buildr4osgi/eclipse/site'
