@@ -48,7 +48,7 @@ describe Buildr4OSGi::SiteWriter do
     category.description = "The category is described here"
     category.features<< @foo.package(:feature)
     @f_w.categories << category
-    @f_w.writeSiteXml.should == <<-SITE_XML
+    @f_w.writeSiteXml().should == <<-SITE_XML
 <?xml version="1.0" encoding="UTF-8"?>
 <site pack200="false">
  <description url="http://www.example.com/description">Description</description>
@@ -61,5 +61,24 @@ describe Buildr4OSGi::SiteWriter do
 </site>
 SITE_XML
   end
+  
+  it "should create a zip file containing site.xml at its root" do
+    @bar = define("bar", :version => "1.0")
+    site = @bar.package(:site)
+    category = Buildr4OSGi::Category.new
+    category.name = "category.id"
+    category.label = "Some Label"
+    category.description = "The category is described here"
+    category.features<< @foo.package(:feature)
+    site.categories << category
+    site.invoke
+    File.should exist(site.to_s)
+    Zip::ZipFile.open(site.to_s) do |zip|
+      print zip.entries.join("\n")
+      zip.find_entry("plugins").should_not be_nil
+      zip.find_entry("features").should_not be_nil
+    end
+  end
+  
   
 end
