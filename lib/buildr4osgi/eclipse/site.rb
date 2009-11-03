@@ -65,7 +65,6 @@ module Buildr4OSGi
         
         f2c = feature_categories_map()
         f2c.each_pair { |feature, categories|
-          feature = adapt_feature(feature)
           info = feature_info[feature.to_s]
           x.feature(:id => info[:id], :version => info[:version], :url => "features/#{info[:id]}_#{info[:version]}.jar", :patch => false) {
             for category in categories
@@ -79,9 +78,7 @@ module Buildr4OSGi
     def feature_categories_map()
       f2c = {}
       categories.each do |category|
-        for f in category.features
-          
-          f = adapt_feature(f)
+        category.features.collect {|f| adapt_feature(f)}.flatten.each do |f|
           f2c[f] ||= []
           f2c[f] << category
         end
@@ -94,7 +91,7 @@ module Buildr4OSGi
         when obj.is_a?(String)
           Buildr::artifact(obj)
         when obj.is_a?(Buildr::Project)
-          Buildr::artifact(obj.package(:feature))
+          [Buildr::artifact(obj.package(:feature)), Buildr::artifact(obj.package(:sources))]
         else 
           obj
         end
@@ -121,7 +118,6 @@ module Buildr4OSGi
     def generateSite(project)
       mkpath File.join(project.base_dir, 'target')
       feature_files = find_feature_files()
-      
       info = {}
       for feature in feature_files
         dir = File.join(project.base_dir, 'target', File.basename(feature.to_s, ".*"))
@@ -145,15 +141,16 @@ module Buildr4OSGi
           Buildr::zip(File.join(dir, "features", "#{File.basename(feature_dir)}.jar")).include(File.join(feature_dir, "*")).invoke
           path("features").include File.join(dir, "features", "#{File.basename(feature_dir)}.jar")
         end
-        if site_xml
-          path("").include site_xml
-        else
-          File.open(File.join(project.base_dir, 'target', 'site.xml'), 'w') do |f|
-            f.write(writeSiteXml(info))
-          end
-          path("").include File.join(project.base_dir, 'target', 'site.xml')
-        end
       end
+      if site_xml
+        path("").include site_xml
+      else
+        File.open(File.join(project.base_dir, 'target', 'site.xml'), 'w') do |f|
+          f.write(writeSiteXml(info))
+        end
+        path("").include File.join(project.base_dir, 'target', 'site.xml')
+      end
+
     end
     
     protected
@@ -162,9 +159,10 @@ module Buildr4OSGi
       feature_files = []
       unless @categories.nil? || @categories.empty?
         feature_categories_map.keys.uniq.each do |feature|
-          artifact = adapt_feature(feature)
-          artifact.invoke
-          feature_files << artifact
+          [adapt_feature(feature)].flatten.each do |artifact|
+            artifact.invoke
+            feature_files << artifact
+          end
         end
       end
       feature_files

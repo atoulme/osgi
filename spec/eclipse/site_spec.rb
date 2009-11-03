@@ -23,10 +23,17 @@ describe Buildr4OSGi::SiteWriter do
     end
     @f_w = SiteWriterTester.new
     @f_w.extend Buildr4OSGi::SiteWriter
-    
+    Buildr::write "bar/src/main/java/Hello.java", "public class Hello {}"
+    @container = define("container") do
+      project.group = "grp"
+      @bar = define("bar", :version => "1.0.0") do
+        package(:bundle)
+        package(:sources)
+      end
+    end
     @foo = define("foo", :version => "1.0.0") do
       f = package(:feature)
-      f.plugins << DEBUG_UI
+      f.plugins << project("container:bar")
       f.label = "My feature"
       f.provider = "Acme Inc"
       f.description = "The best feature ever"
@@ -37,6 +44,7 @@ describe Buildr4OSGi::SiteWriter do
       f.update_sites << {:url => "http://example.com/update", :name => "My update site"}
       f.discovery_sites = [{:url => "http://example.com/update2", :name => "My update site2"}, 
         {:url => "http://example.com/upup", :name => "My update site in case"}]
+      #package(:sources)
     end
   end
   
