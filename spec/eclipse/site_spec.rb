@@ -17,26 +17,27 @@ require File.join(File.dirname(__FILE__), '../spec_helpers')
 
 describe Buildr4OSGi::SiteWriter do
   
-  before(:all) do
+  before(:each) do
     class SiteWriterTester
       
     end
     @f_w = SiteWriterTester.new
     @f_w.extend Buildr4OSGi::SiteWriter
     
-    @foo = define("foo", :version => "1.0.0")
-    f = @foo.package(:feature)
-    f.plugins << DEBUG_UI
-    f.label = "My feature"
-    f.provider = "Acme Inc"
-    f.description = "The best feature ever"
-    f.changesURL = "http://example.com/changes"
-    f.license = "The license is too long to explain"
-    f.licenseURL = "http://example.com/license"
-    f.branding_plugin = "com.musal.ui"
-    f.update_sites << {:url => "http://example.com/update", :name => "My update site"}
-    f.discovery_sites = [{:url => "http://example.com/update2", :name => "My update site2"}, 
-      {:url => "http://example.com/upup", :name => "My update site in case"}]
+    @foo = define("foo", :version => "1.0.0") do
+      f = package(:feature)
+      f.plugins << DEBUG_UI
+      f.label = "My feature"
+      f.provider = "Acme Inc"
+      f.description = "The best feature ever"
+      f.changesURL = "http://example.com/changes"
+      f.license = "The license is too long to explain"
+      f.licenseURL = "http://example.com/license"
+      f.branding_plugin = "com.musal.ui"
+      f.update_sites << {:url => "http://example.com/update", :name => "My update site"}
+      f.discovery_sites = [{:url => "http://example.com/update2", :name => "My update site2"}, 
+        {:url => "http://example.com/upup", :name => "My update site in case"}]
+    end
   end
   
   it "should write a valid site.xml" do
@@ -46,9 +47,9 @@ describe Buildr4OSGi::SiteWriter do
     category.name = "category.id"
     category.label = "Some Label"
     category.description = "The category is described here"
-    category.features<< @foo.package(:feature)
+    category.features<< @foo
     @f_w.categories << category
-    @f_w.writeSiteXml().should == <<-SITE_XML
+    @f_w.writeSiteXml({@foo.package(:feature).to_s => {:id => "foo", :version => "1.0.0"}}).should == <<-SITE_XML
 <?xml version="1.0" encoding="UTF-8"?>
 <site pack200="false">
  <description url="http://www.example.com/description">Description</description>
@@ -69,12 +70,13 @@ SITE_XML
     category.name = "category.id"
     category.label = "Some Label"
     category.description = "The category is described here"
-    category.features<< @foo.package(:feature)
+    category.features<< @foo
     site.categories << category
     site.invoke
     File.should exist(site.to_s)
     Zip::ZipFile.open(site.to_s) do |zip|
       print zip.entries.join("\n")
+      print zip.read("site.xml")
       zip.find_entry("plugins").should_not be_nil
       zip.find_entry("features").should_not be_nil
     end
