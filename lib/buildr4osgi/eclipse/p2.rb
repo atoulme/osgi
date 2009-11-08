@@ -37,17 +37,40 @@ module Buildr4OSGi
       def initialize(*args) #:nodoc:
         super
         enhance do
-          Buildr.ant('org.eclipse.equinox.p2.publisher.UpdateSitePublisher') do |ant|
-            work_dir = File.join(project.base_dir, "target", "generated", "update-site")
-            ant.java :fork => true, :failonerror => true, :classname=>'org.eclipse.equinox.p2.publisher.UpdateSitePublisher' do
-              ant.arg :value => "metadataRepository" 
-              ant.arg :value => work_dir
-              ant.arg :value => "artifactRepository"
-              ant.arg :value => work_dir
-              ant.arg :value => "compress"
-              ant.arg :value => "publishArtifacts"
-            end
-          end
+#          Buildr.ant('org.eclipse.equinox.p2.publisher.UpdateSitePublisher') do |ant|
+#            work_dir = File.join(project.base_dir, "target", "generated", "update-site")
+#            ant.java :fork => true, :failonerror => true, :classname=>'org.eclipse.equinox.p2.publisher.UpdateSitePublisher' do
+#              ant.arg :value => "metadataRepository" 
+#              ant.arg :value => work_dir
+#              ant.arg :value => "artifactRepository"
+#              ant.arg :value => work_dir
+#              ant.arg :value => "compress"
+#              ant.arg :value => "publishArtifacts"
+#            end
+#          end
+# http://wiki.eclipse.org/Equinox/p2/Publisher
+#the p2.installer and the p2.agent don't work. currently debugging with a local eclipse sdk.
+# download the app here: "org.eclipse.equinox.p2:installer:3.6M2-linux.gtk.x86:tgz"
+# unzip it wherever it is.
+# then invoke it on the cmd line `java -jar #{launcherLocation} -application ... -source #{siteLocation}`
+#we need to give the ability to define an eclipse home that could be invoked as a replacement to this.
+#          p2installer = Buildr::artifact("org.eclipse.equinox.p2:equinox-p2-agent:tgz:3.6M3-linux")
+#          p2installer.invoke
+#          p2installerHome = File.join(project.base_dir, "target", "p2installer")
+#          Buildr::unzip(p2installerHome => p2installer).extract
+#          p2installerHome = File.join(p2installerHome, "eclipse")
+          
+          #add the missing publisher plugin:
+#          p2publisher = Buildr::artifact("org.eclipse.equinox.p2:org.eclipse.equinox.p2.publisher:jar:1.1.0.v20090831")
+#          p2publisher.invoke
+#          cp p2publisher.to_s, File.join(p2installerHome, "plugins/#{p2publisher.id}_#{p2publisher.version}.jar")
+
+          targetDir = File.join(project.base_dir, "target")
+
+          p2installerHome = "/home/hmalphettes/proj/eclipses/eclipse-3.6M2-SDK"
+          puts $work_dir.to_s
+          result = `java -jar #{p2installerHome}/plugins/org.eclipse.equinox.launcher_1.0.300.v20090911.jar -application org.eclipse.equinox.p2.publisher.UpdateSitePublisher -metadataRepository file:/#{targetDir} -artifactRepository file:/#{targetDir} -source #{targetDir} -configs gtk.linux.x86 -compress -publishArtifacts -clean -consoleLog`
+          puts result
         end
       end
 
