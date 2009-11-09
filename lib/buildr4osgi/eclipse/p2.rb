@@ -54,7 +54,7 @@ module Buildr4OSGi
 # unzip it wherever it is.
 # then invoke it on the cmd line `java -jar #{launcherLocation} -application ... -source #{siteLocation}`
 #we need to give the ability to define an eclipse home that could be invoked as a replacement to this.
-#          p2installer = Buildr::artifact("org.eclipse.equinox.p2:equinox-p2-agent:tgz:3.6M3-linux")
+#          p2installer = Buildr::artifact("org.eclipse.platform:eclipse-platform:tgz:3.6M3-linux-gtk")
 #          p2installer.invoke
 #          p2installerHome = File.join(project.base_dir, "target", "p2installer")
 #          Buildr::unzip(p2installerHome => p2installer).extract
@@ -65,11 +65,33 @@ module Buildr4OSGi
 #          p2publisher.invoke
 #          cp p2publisher.to_s, File.join(p2installerHome, "plugins/#{p2publisher.id}_#{p2publisher.version}.jar")
 
-          targetDir = File.join(project.base_dir, "target")
+          siteWithoutP2 = project.package(:site)
+          siteWithoutP2.invoke
+          
+          
 
-          p2installerHome = "/home/hmalphettes/proj/eclipses/eclipse-3.6M2-SDK"
-          puts $work_dir.to_s
-          result = `java -jar #{p2installerHome}/plugins/org.eclipse.equinox.launcher_1.0.300.v20090911.jar -application org.eclipse.equinox.p2.publisher.UpdateSitePublisher -metadataRepository file:/#{targetDir} -artifactRepository file:/#{targetDir} -source #{targetDir} -configs gtk.linux.x86 -compress -publishArtifacts -clean -consoleLog`
+          targetDir = File.join(project.base_dir, "target")
+          targetP2Repo = File.join(project.base_dir, "p2repository");
+          mkpath targetP2Repo
+          Buildr::unzip(targetP2Repo=>siteWithoutP2.to_s).extract
+          p2installerHome = "/home/hmalphettes/proj/eclipses/eclipse-SDK-3.6M3";#"/home/hmalphettes/proj/eclipses/eclipse-3.6M2-SDK"
+          
+          launcherPlugin = "#{p2installerHome}/plugins/org.eclipse.equinox.launcher_1.1.0.v20091023.jar"
+          application = "org.eclipse.equinox.p2.publisher.UpdateSitePublisher"
+          
+          #this is where the artifacts are published.
+          metadataRepository_url = "file:#{targetP2Repo}"
+          artifactRepository_url = metadataRepository_url
+          source_absolutePath = targetP2Repo
+          
+          cmdline = "java -jar #{launcherPlugin} -application #{application} \
+-metadataRepository #{metadataRepository_url} \
+-artifactRepository #{artifactRepository_url} \
+-source #{source_absolutePath} \
+-configs gtk.linux.x86 \
+-publishArtifacts -clean -consoleLog"
+          puts "Invoking P2's metadata generation: #{cmdline}"
+          result = `#{cmdline}`
           puts result
         end
       end
