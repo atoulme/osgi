@@ -103,6 +103,8 @@ module Buildr4OSGi #:nodoc:
     #
     def library_project(dependencies, group, name, version, options = {:exclude => ["META-INF/MANIFEST.MF"], :include => [], :manifest => {}})
       options[:manifest] ||= {} 
+      options[:include] ||= []
+      options[:exclude] ||= []
       deps_as_str = []
       # We create an object and we extend with the module so we can get access to the walk_libs method.
       walker = Object.new 
@@ -134,7 +136,18 @@ module Buildr4OSGi #:nodoc:
             walk_libs(#{deps_as_str}) {|lib|
               names << lib.to_spec 
               lib.invoke # make sure the artifact is present.
-              Zip::ZipFile.foreach(lib.to_s) {|entry| entries << entry.name.sub(/(.*)\\/.*.class$/, '\\1').gsub(/\\//, '.') if /.*\\.class$/.match(entry.name)}
+              Zip::ZipFile.foreach(lib.to_s) {|entry| 
+                if /.*\\.class$/.match(entry.name)
+                  add_to_entries = true
+                  [#{options[:exclude].inspect}].flatten.each {|excluded|
+                    add_to_entries &&= !entry.name.match(excluded)
+                  }
+                  [#{options[:include].inspect}].flatten.each {|included|
+                    add_to_entries &&= included.match(entry.name)
+                  }
+                  entries << entry.name.sub(/(.*)\\/.*.class$/, '\\1').gsub(/\\//, '.') if add_to_entries
+                end
+              }
             }
             lib_manifest = { 
               "Bundle-Version" => "#{version}",

@@ -92,7 +92,7 @@ describe Buildr4OSGi::BuildLibraries do
     library_project(SLF4J, "group", "foo", "1.0.0")
     foo = project("foo")
     lambda {foo.package(:sources).invoke}.should_not raise_error
-    sources = File.join(foo.base_dir, "target", "foo-1.0.0-sources.zip")
+    sources = File.join(foo.base_dir, "target", "foo-1.0.0-sources.jar")
     File.exists?(sources).should be_true
     Zip::ZipFile.open(sources) {|zip|
       zip.find_entry("org/slf4j/Marker.java").should_not be_nil
@@ -155,5 +155,18 @@ describe Buildr4OSGi::BuildLibraries do
       lambda {library_project(SLF4J, "org.nuxeo.libs", "org.nuxeo.logging", "1.1.2",
       		 :manifest => {"Require-Bundle" => "org.apache.log4j"})}.should_not raise_error(NoMethodError)
     end
-  end 
+  end
+  
+  it "should not add a manifest Export-Package entry if that package was excluded" do
+    library_project(SLF4J, "org.hello.libs", "org.hello.logging", "1.1.2", :exclude => "org/slf4j/impl/*")
+    foo = project("org.hello.logging")
+    foo.package(:library_project).invoke
+    jar = File.join(foo.base_dir, "target", "org.hello.logging-1.1.2.jar")
+    File.exists?(jar).should be_true
+    Zip::ZipFile.open(jar) {|zip|
+      zip.find_entry("org/slf4j/impl").should be_nil
+      zip.find_entry("org/slf4j/helpers").should_not be_nil
+      zip.read("META-INF/MANIFEST.MF").should_not match /org\.slf4j\.impl/
+    }
+  end
 end
