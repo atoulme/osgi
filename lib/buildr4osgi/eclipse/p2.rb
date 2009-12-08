@@ -67,29 +67,35 @@ module Buildr4OSGi
 
           siteWithoutP2 = project.package(:site)
           siteWithoutP2.invoke
-          
-          
 
           targetDir = File.join(project.base_dir, "target")
           targetP2Repo = File.join(project.base_dir, "p2repository");
           mkpath targetP2Repo
           Buildr::unzip(targetP2Repo=>siteWithoutP2.to_s).extract
-          p2installerHome = "/home/hmalphettes/proj/eclipses/eclipse-SDK-3.6M3";#"/home/hmalphettes/proj/eclipses/eclipse-3.6M2-SDK"
+          eclipseSDK = Buildr::artifact("org.eclipse:eclipse-SDK:zip:3.6M3-win32")
+          eclipseSDK.invoke
+          p2installerHome = File.dirname eclipseSDK.to_s#"/home/hmalphettes/proj/eclipses/eclipse-SDK-3.6M3";#"/home/hmalphettes/proj/eclipses/eclipse-3.6M2-SDK"
+          Buildr::unzip( p2installerHome => eclipseSDK.to_s ).extract
+          p2installerHome += "/eclipse"
+          launcherPlugin = Dir.glob("#{p2installerHome}/plugins/org.eclipse.equinox.launcher_*")[0]
           
-          launcherPlugin = "#{p2installerHome}/plugins/org.eclipse.equinox.launcher_1.1.0.v20091023.jar"
           application = "org.eclipse.equinox.p2.publisher.UpdateSitePublisher"
-          
           #this is where the artifacts are published.
           metadataRepository_url = "file:#{targetP2Repo}"
           artifactRepository_url = metadataRepository_url
+          metadataRepository_name = project.id + "_" + project.version
+          artifactRepository_name = project.id + "_" + project.version
           source_absolutePath = targetP2Repo
           
           cmdline = "java -jar #{launcherPlugin} -application #{application} \
 -metadataRepository #{metadataRepository_url} \
 -artifactRepository #{artifactRepository_url} \
+-metadataRepositoryName #{metadataRepository_name} \
+-artifactRepositoryName #{artifactRepository_name} \
 -source #{source_absolutePath} \
 -configs gtk.linux.x86 \
--publishArtifacts -clean -consoleLog"
+-publishArtifacts \
+-clean -consoleLog"
           puts "Invoking P2's metadata generation: #{cmdline}"
           result = `#{cmdline}`
           puts result
