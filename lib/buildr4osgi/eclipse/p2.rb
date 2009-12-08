@@ -29,7 +29,7 @@ module Buildr4OSGi
       spec.merge(:type => :zip, :classifier => "p2", :id => name.split(":").last)
     end
 
-    class UpdateSitePublisherTask < Rake::FileTask
+    class UpdateSitePublisherTask < ::Buildr::Packaging::Java::JarTask
 
       attr_accessor :site
       attr_reader :project
@@ -69,12 +69,12 @@ module Buildr4OSGi
           siteWithoutP2.invoke
 
           targetDir = File.join(project.base_dir, "target")
-          targetP2Repo = File.join(project.base_dir, "p2repository");
+          targetP2Repo = File.join(project.base_dir, "target", "p2repository");
           mkpath targetP2Repo
           Buildr::unzip(targetP2Repo=>siteWithoutP2.to_s).extract
           eclipseSDK = Buildr::artifact("org.eclipse:eclipse-SDK:zip:3.6M3-win32")
           eclipseSDK.invoke
-          p2installerHome = File.dirname eclipseSDK.to_s#"/home/hmalphettes/proj/eclipses/eclipse-SDK-3.6M3";#"/home/hmalphettes/proj/eclipses/eclipse-3.6M2-SDK"
+          p2installerHome = File.dirname eclipseSDK.to_s#"~/proj/eclipses/eclipse-SDK-3.6M3"
           Buildr::unzip( p2installerHome => eclipseSDK.to_s ).extract
           p2installerHome += "/eclipse"
           launcherPlugin = Dir.glob("#{p2installerHome}/plugins/org.eclipse.equinox.launcher_*")[0]
@@ -99,6 +99,9 @@ module Buildr4OSGi
           puts "Invoking P2's metadata generation: #{cmdline}"
           result = `#{cmdline}`
           puts result
+          
+          include targetP2Repo, :as=>"."
+          
         end
       end
 
