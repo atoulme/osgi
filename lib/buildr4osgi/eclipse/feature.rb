@@ -384,9 +384,9 @@ PROPERTIES
         new_value = value.clone rescue value
         sdkPackage.instance_variable_set("@#{ivar}", new_value)
       end
-      sdkPackage.label += " - Sources"
-      sdkPackage.description = "Sources for " + sdkPackage.description
-      sdkPackage.feature_id += ".sources"
+      sdkPackage.label += " - Sources" if sdkPackage.label
+      sdkPackage.description = "Sources for " + sdkPackage.description if sdkPackage.descrioption
+      sdkPackage.feature_id += ".sources" 
       sdkPackage
     end
     
