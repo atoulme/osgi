@@ -15,9 +15,13 @@
 
 module OSGi
   
+    # FIXME this code should not be here, it should not be under OSGi directly.
     # generate an Eclipse-SourceBundle manifest from the manifest of a runtime plugin
     # Assumes that there are no jars inside the runtime plugin.
     def self.create_source_bundle_manifest(pluginManifest)
+      if pluginManifest.is_a?(::Buildr::Packaging::Java::Manifest)
+        pluginManifest = pluginManifest.main
+      end
       #remove the properties after the sym-name such as ';singleton=true'
       bundleSymName = pluginManifest["Bundle-SymbolicName"].split(';').first
       bundleVersion = pluginManifest["Bundle-Version"]
