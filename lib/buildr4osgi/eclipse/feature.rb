@@ -373,9 +373,14 @@ PROPERTIES
       return package_as_sources_before_SDK_feature(file_name) unless is_packaging_feature
       featurePackage = packages.select {|package| package.is_a?(::Buildr4OSGi::FeaturePackaging)}.first.dup
       sdkPackage = FeatureTask.define_task(file_name)
-      sdkPackage.enhance do |featureTask|
-        featureTask.generateFeature(project)
+      sdkPackage.enhance do |sdkTask|
+        raise "Cannot use same feature.xml file for both binary and source features packaging" if featurePackage.feature_xml == sdkTask.feature_xml
+        sdkTask.label += " - Sources" if featurePackage.label == sdkTask.label
+        sdkTask.description = "Sources for " + sdkTask.description if featurePackage.description == sdkTask.description
+        sdkTask.feature_id += ".sources" if featurePackage.feature_id == sdkTask.feature_id
+        sdkTask.generateFeature(project)
       end
+      
       sdkPackage.extend FeatureWriter
       sdkPackage.extend SDKFeatureEnabler
       
@@ -384,9 +389,7 @@ PROPERTIES
         new_value = value.clone rescue value
         sdkPackage.instance_variable_set("@#{ivar}", new_value)
       end
-      sdkPackage.label += " - Sources" if sdkPackage.label
-      sdkPackage.description = "Sources for " + sdkPackage.description if sdkPackage.descrioption
-      sdkPackage.feature_id += ".sources" 
+      
       sdkPackage
     end
     
