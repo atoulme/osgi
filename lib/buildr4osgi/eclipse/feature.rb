@@ -35,7 +35,7 @@ module Buildr4OSGi
     # Writes an Eclipse feature with this format:
     #<feature id="com.acme.MyFeature" label="%feature.name"
     #	 version="5.0.100" provider-name="%provider.name"
-    #	 plugin="myPlugin.id">
+    #	 plugin="myPlugin.id" image="some_icon.gif">
     #
     #   <description url="%changesURL">
     #      %description
@@ -69,7 +69,7 @@ module Buildr4OSGi
       feature_properties = {"id" => feature_id, "label" => externalize_strings ? "%feature.name" : label, 
         "version" => version, "provider-name" => externalize_strings ? "%provider.name" : provider}
       feature_properties.merge!("plugin" => branding_plugin) if branding_plugin
-      feature_properties.merge!("plugin" => image) if image
+      feature_properties.merge!("image" => image) if image
       x.feature(feature_properties) {
         x.description( "%description", "url" => externalize_strings ? "%changesURL" : changesURL)
         x.copyright(copyright)
