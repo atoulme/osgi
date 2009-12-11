@@ -374,7 +374,7 @@ PROPERTIES
       featurePackage = packages.select {|package| package.is_a?(::Buildr4OSGi::FeaturePackaging)}.first.dup
       sdkPackage = FeatureTask.define_task(file_name)
       sdkPackage.enhance do |sdkTask|
-        raise "Cannot use same feature.xml file for both binary and source features packaging" if featurePackage.feature_xml == sdkTask.feature_xml
+        raise "Cannot use same feature.xml file for both binary and source features packaging" if (!featurePackage.feature_xml.nil?) && featurePackage.feature_xml == sdkTask.feature_xml
         sdkTask.label += " - Sources" if featurePackage.label == sdkTask.label
         sdkTask.description = "Sources for " + sdkTask.description if featurePackage.description == sdkTask.description
         sdkTask.feature_id += ".sources" if featurePackage.feature_id == sdkTask.feature_id
