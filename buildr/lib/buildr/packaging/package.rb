@@ -43,7 +43,7 @@ module Buildr
       end
     end
 
-    before_define do |project|
+    before_define(:package => :build) do |project|
       [ :package, :install, :uninstall, :upload ].each { |name| project.recursive_task name }
       # Need to run build before package, since package is often used as a dependency by tasks that
       # expect build to happen.
@@ -51,6 +51,8 @@ module Buildr
       project.group ||= project.parent && project.parent.group || project.name
       project.version ||= project.parent && project.parent.version
     end
+    
+    after_define(:package)
 
     # The project's identifier. Same as the project name, with colons replaced by dashes.
     # The ID for project foo:bar is foo-bar.
@@ -123,9 +125,10 @@ module Buildr
     # The file name is determined from the specification passed to the package method, however, some
     # packagers need to override this.  For example, package(:sources) produces a file with the extension
     # 'zip' and the classifier 'sources'.  If you need to overwrite the default implementation, you should
-    # also include a method named package_as_[type]_respec.  For example:
+    # also include a method named package_as_[type]_spec.  For example:
     #   def package_as_sources_spec(spec) #:nodoc:
-    #     { :type=>:zip, :classifier=>'sources' }.merge(spec)
+    #     # Change the source distribution to .jar extension
+    #     spec.merge({ :type=>:jar, :classifier=>'sources' })
     #   end
     def package(*args)
       spec = Hash === args.last ? args.pop.dup : {}

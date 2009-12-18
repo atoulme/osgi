@@ -109,7 +109,17 @@ describe Buildr::TestTask do
     test_task.compile.dependencies.should include(File.expand_path('test.jar'))
     test_task.compile.dependencies.should include(artifact('acme:example:jar:1.0'))
   end
-
+  
+  it 'should respond to deprecated classpath' do
+    test_task.classpath = artifact('acme:example:jar:1.0')
+    test_task.classpath.should be(artifact('acme:example:jar:1.0'))
+  end
+  
+  it 'should respond to dependencies' do
+    test_task.dependencies = artifact('acme:example:jar:1.0')
+    test_task.dependencies.should be(artifact('acme:example:jar:1.0'))
+  end
+  
   it 'should respond to :with and add artifacfs to task dependencies' do
     test_task.with 'test.jar', 'acme:example:jar:1.0'
     test_task.dependencies.should include(File.expand_path('test.jar'))
@@ -267,6 +277,14 @@ describe Buildr::TestTask do
     define 'foo'
     mkpath project('foo').test.report_to.to_s
     lambda { task('clean').invoke }.should change { File.exist?(project('foo').test.report_to.to_s) }.to(false)
+  end
+
+  it 'should only run tests explicitly specified if options.test is :only' do
+    Buildr.options.test = :only 
+    write 'bar/src/main/java/Bar.java', 'public class Bar {}'
+    define('bar', :version=>'1.0', :base_dir=>'bar') { package :jar }
+    define('foo') { compile.with project('bar') }
+    lambda { task('foo:test').invoke rescue nil }.should_not run_tasks('bar:test')
   end
 end
 
@@ -684,7 +702,18 @@ describe Buildr::TestTask, '#invoke' do
     
     it 'should run tests if buildfile changed' do
       touch 'buildfile'
+      test_task.should_receive(:run_tests)
       lambda { test_task.invoke }.should run_task('foo:test')
+    end
+
+    it 'should not run tests if buildfile changed but IGNORE_BUILDFILE is true' do
+      begin
+        ENV["IGNORE_BUILDFILE"] = "true"
+        test_task.should_not_receive(:run_tests)
+        test_task.invoke
+      ensure
+        ENV["IGNORE_BUILDFILE"] = nil
+      end
     end
   end
 end
@@ -715,6 +744,13 @@ describe Rake::Task, 'test' do
     define('bar') { test { fail } }
     options.test = :all 
     lambda { task('test').invoke rescue nil }.should run_tasks('foo:test', 'bar:test')
+  end
+
+  it 'should ignore failure if options.test is :all and target is build task ' do
+    define('foo') { test { fail } }
+    define('bar') { test { fail } }
+    options.test = :all 
+    lambda { task('build').invoke rescue nil }.should run_tasks('foo:test', 'bar:test')
   end
 
   it 'should ignore failure if environment variable test is \'all\'' do

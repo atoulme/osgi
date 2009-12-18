@@ -112,7 +112,7 @@ module Buildr::Scala
             # TODO: This should be name=>value pairs!
             #ant.includes group_includes.join(" ") if group_includes
             #ant.excludes group_excludes.join(" ") if group_excludes
-            (options[:properties] || []).each { |name, value| ant.property :name=>name, :value=>value }
+            (options[:properties] || []).each { |name, value| ant.config :name=>name, :value=>value }
           end
         end
         
@@ -126,8 +126,8 @@ module Buildr::Scala
         while (!completed) do
           File.open(reportFile, "r") do |input|
             while (line = input.gets) do
-              failed = (line =~ /(TESTS? FAILED -)|(RUN STOPPED)|(RUN ABORTED)/) unless failed
-              completed |= (line =~ /Run completed\./)
+              failed = (line =~ /(TESTS? FAILED)|(RUN STOPPED)|(RUN ABORTED)/) unless failed
+              completed |= (line =~ /Run completed/)
               break if (failed)
             end
           end

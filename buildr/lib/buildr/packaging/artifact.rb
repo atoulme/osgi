@@ -199,7 +199,7 @@ module Buildr
   #
   # Note: You can enhance this task to create the artifact yourself, e.g. download it from
   # a site that doesn't have a remote repository structure, copy it from a different disk, etc.
-  class Artifact < Rake::FileCreationTask
+  class Artifact < Rake::FileTask
 
     # The default artifact type.
     DEFAULT_TYPE = :jar
@@ -458,8 +458,9 @@ module Buildr
     # Sets the path to the local repository.
     #
     # The best place to set the local repository path is from a buildr.rb file
-    # located in your home directory. That way all your projects will share the same
-    # path, without affecting other developers collaborating on these projects.
+    # located in the .buildr directory under your home directory. That way all 
+    # your projects will share the same path, without affecting other developers 
+    # collaborating on these projects.
     def local=(dir)
       @local = dir ? File.expand_path(dir) : nil
     end
