@@ -124,4 +124,10 @@ describe OSGi::VersionRange do
     r2.to_s.should eql("[1.0.0,2.0.0)")
   end
   
+  it 'should be able to consume a range with a space before or after the two limits' do
+    OSGi::VersionRange.parse("[1.0.0, 2.0.0)").should be_instance_of(OSGi::VersionRange)
+    OSGi::VersionRange.parse("[1.0.0 , 2.0.0)").should be_instance_of(OSGi::VersionRange)
+    OSGi::VersionRange.parse("[1.0.0 ,2.0.0)").should be_instance_of(OSGi::VersionRange)
+  end
+  
 end
