@@ -54,7 +54,7 @@ module OSGi #:nodoc:
       when 0 then []
       when 1 then bundles
       else
-        bundles = OSGi::PackageResolvingStrategies.send(project.osgi.options.package_resolving_strategy, name, bundles)
+        bundles = PackageResolvingStrategies.send(project.osgi.options.package_resolving_strategy, name, bundles)
       end
       warn "No bundles found exporting the package #{name}; version=#{version}" if (bundles.empty?)
       bundles
