@@ -61,9 +61,6 @@ end if RUBY_PLATFORM =~ /java/ || ENV['JRUBY_HOME'] # RSpec
 describe Buildr::JtestR do
 
   before do
-    # JtestR currently requires JUnit 4.4
-    Buildr.settings.build['junit'] = '4.4'
-
     # clear cached dependencies
     Buildr::JUnit.instance_eval { @dependencies = nil }
     Buildr::JtestR.instance_eval { @dependencies = nil }
@@ -261,7 +258,7 @@ describe Buildr::JtestR do
     error = File.expand_path('src/spec/ruby/error_spec.rb')
     write(error, 'describe("error") { it("raises") { lambda; } }')
     pending =  File.expand_path('src/spec/ruby/pending_spec.rb')
-    write(pending, 'describe("peding") { it "is not implemented" }')
+    write(pending, 'describe("pending") { it "is not implemented" }')
     foo do
       lambda { test.invoke }.should raise_error(/Tests failed/)
       test.tests.should include(success, failure, error)

@@ -52,7 +52,7 @@ p(note). Buildr projects also define a @group@ attribute which can lead to some 
 If you have several artifacts you always use together, consider placing them in an array.  Methods that accept lists of artifacts also accept arrays.  For example:
 
 {% highlight ruby %}
-OPENJPA = ['org.apache.openjpa:openjpa-all:jar:0.9.7',
+OPENJPA = ['org.apache.openjpa:openjpa:jar:1.2.1',
   'net.sourceforge.serp:serp:jar:1.12.0']
 AXIS_OF_WS = [AXIS2, AXIOM]
 
@@ -125,7 +125,7 @@ You can choose to relocate the local repository by giving it a different path, f
 repositories.local = '/usr/local/maven/repository'
 {% endhighlight %}
 
-That's one change you don't want to commit into the Buildfile, so the best place to do it is in your home directory's @buildr.rb@ file.
+That's one change you don't want to commit into the Buildfile, so the best place to do it is in the @buildr.rb@ file in the @.buildr@ directory under your home directory.
 
 Buildr downloads artifacts when it needs to use them, for example, to compile a project.  You don't need to download artifacts directly.  Except when you do, for example, if you want to download all the latest artifacts and then go off-line.  It's as simple as:
 
@@ -139,7 +139,7 @@ h2(#downloading). Downloading Artifacts
 Within your buildfile you can download artifacts directly by invoking them, for example:
 
 {% highlight ruby %}
-artifact('org.apache.openjpa:openjpa-all:jar:0.9.7').invoke
+artifact('org.apache.openjpa:openjpa:jar:1.2.1').invoke
 artifacts(OPENJPA).each(&:invoke)
 {% endhighlight %}
 
@@ -208,4 +208,4 @@ upload bean
 p(tip).  Calling the @install@ (and likewise @upload@) method on an artifact run @buildr install@.  If you need to download and install an artifact, invoke the task directly with @install(<artifact>).invoke@.
 
 
-Next we're going to "package some artifacts":packaging.html.
+We'll talk more about installing and uploading in the next chapter, but right now we're going to "package some artifacts":packaging.html.

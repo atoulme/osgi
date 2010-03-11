@@ -49,7 +49,7 @@ module Buildr
       end
 
       # Adds a test framework to the list of supported frameworks.
-      #   
+      #
       # For example:
       #   Buildr::TestFramework << Buildr::JUnit
       def add(framework)
@@ -126,7 +126,7 @@ module Buildr
       end
 
     end
-  
+
   end
 
 
@@ -195,7 +195,12 @@ module Buildr
       else
         @options = OpenObject.new(default_options)
       end
-      enhance [application.buildfile.name] do
+
+      unless ENV["IGNORE_BUILDFILE"] =~ /(true)|(yes)/i
+        enhance [ application.buildfile.name ]
+        enhance application.buildfile.prerequisites
+      end
+      enhance do
         run_tests if framework
       end
     end
@@ -203,18 +208,18 @@ module Buildr
     # The dependencies used for running the tests. Includes the compiled files (compile.target)
     # and their dependencies. Will also include anything you pass to #with, shared between the
     # testing compile and run dependencies.
-    attr_reader :dependencies
+    attr_accessor :dependencies
 
     # *Deprecated*: Use dependencies instead.
     def classpath
       Buildr.application.deprecated 'Use dependencies instead.'
-      dependencies
+      @dependencies
     end
 
     # *Deprecated*: Use dependencies= instead.
     def classpath=(artifacts)
       Buildr.application.deprecated 'Use dependencies= instead.'
-      self.dependencies = artifacts
+      @dependencies = artifacts
     end
 
     def execute(args) #:nodoc:
@@ -226,7 +231,7 @@ module Buildr
       begin
         super
       rescue RuntimeError
-        raise if options[:fail_on_failure]
+        raise if options[:fail_on_failure] && Buildr.options.test != :all
       ensure
         teardown.invoke
       end
@@ -247,7 +252,7 @@ module Buildr
     def compile(*sources, &block)
       @project.task('test:compile').from(sources).enhance &block
     end
- 
+
     # :call-seq:
     #   resources(*prereqs) => ResourcesTask
     #   resources(*prereqs) { |task| .. } => ResourcesTask
@@ -323,7 +328,7 @@ module Buildr
           Buildr.application.deprecated "Please replace with using(:#{name}=>true)"
           options[name.to_sym] = true
         end
-      end 
+      end
       self
     end
 
@@ -399,12 +404,12 @@ module Buildr
     def last_successful_run_file #:nodoc:
       File.join(report_to.to_s, 'last_successful_run')
     end
-    
+
     # The time stamp of the last successful test run.  Or Rake::EARLY if no successful test run recorded.
     def timestamp #:nodoc:
       File.exist?(last_successful_run_file) ? File.mtime(last_successful_run_file) : Rake::EARLY
     end
-    
+
     # The project this task belongs to.
     attr_reader :project
 
@@ -465,7 +470,7 @@ module Buildr
       mkdir_p report_to.to_s
       touch last_successful_run_file
     end
-    
+
     # Limit running tests to specific list.
     def only_run(tests)
       @include = Array(tests)
@@ -567,8 +572,8 @@ module Buildr
       end
 
     end
-    
-    before_define do |project|
+
+    before_define(:test) do |project|
       # Define a recursive test task, and pass it a reference to the project so it can discover all other tasks.
       test = TestTask.define_task('test')
       test.send :associate_with, project
@@ -587,17 +592,18 @@ module Buildr
       test.setup ; test.teardown
     end
 
-    after_define do |project|
+    after_define(:test => :compile) do |project|
       test = project.test
       # Dependency on compiled tests and resources.  Dependencies added using with.
       test.dependencies.concat [test.compile.target, test.resources.target].compact
+      test.dependencies.concat test.compile.dependencies
       # Dependency on compiled code, its dependencies and resources.
       test.with [project.compile.target, project.resources.target].compact
       test.with project.compile.dependencies
       # Picking up the test frameworks adds further dependencies.
       test.framework
-      
-      project.build test unless test.options[:integration]
+
+      project.build test unless test.options[:integration] || Buildr.options.test == :only
 
       project.clean do
         rm_rf test.compile.target.to_s if test.compile.target
@@ -629,7 +635,7 @@ module Buildr
     def test(*prereqs, &block)
       task('test').enhance prereqs, &block
     end
-  
+
     # :call-seq:
     #   integration { |task| .... }
     #   integration => IntegrationTestTask
@@ -682,6 +688,8 @@ module Buildr
         false
       when /^all$/i
         :all
+      when /^only$/i
+        :only
       when /^(yes|on|true)$/i, nil
         true
       else

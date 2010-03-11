@@ -21,6 +21,14 @@ module CompilerHelper
   def compile_task
     @compile_task ||= define('foo').compile.using(:javac)
   end
+  
+  def compile_task_without_compiler
+    @compile_task ||= define('foo').compile
+  end
+  
+  def file_task
+    @file_taks ||= define('bar').file('src')
+  end
 
   def sources
     @sources ||= ['Test1.java', 'Test2.java'].map { |f| File.join('src/main/java/thepackage', f) }.
@@ -45,6 +53,10 @@ describe Buildr::CompileTask do
 
   it 'should respond to from() and return self' do
     compile_task.from(sources).should be(compile_task)
+  end
+
+  it 'should respond to from() with FileTask having no compiler set and return self' do
+    compile_task_without_compiler.from(file_task).should be(compile_task)
   end
 
   it 'should respond to from() and add sources' do
@@ -579,5 +591,34 @@ describe Project, '#resources' do
     write 'src/main/resources/foo', '${foo}'
     define('foo').compile.invoke
     file('target/resources/foo').should contain('bar')
+  end
+
+  it 'should use current profile as default for filtering' do
+    write 'profiles.yaml', <<-YAML
+      development:
+        filter:
+          foo: bar
+    YAML
+    write 'src/main/resources/foo', '${foo} ${baz}'
+    define('foo') do
+      resources.filter.using 'baz' => 'qux'
+    end
+    project('foo').compile.invoke
+    file('target/resources/foo').should contain('bar qux')
+  end
+
+  it 'should allow clearing default filter mapping' do
+    write 'profiles.yaml', <<-YAML
+      development:
+        filter:
+          foo: bar
+    YAML
+    write 'src/main/resources/foo', '${foo} ${baz}'
+    define('foo') do
+      resources.filter.mapping.clear
+      resources.filter.using 'baz' => 'qux'
+    end
+    project('foo').compile.invoke
+    file('target/resources/foo').should contain('${foo} qux')
   end
 end
