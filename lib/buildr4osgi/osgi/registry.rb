@@ -63,6 +63,10 @@ module OSGi
         @containers = [Buildr.settings.user, Buildr.settings.build].inject([]) { |repos, hash|
           repos | Array(hash['osgi'] && hash['osgi']['containers'])
         }
+        if ENV['OSGI'] && !ENV['OSGi']
+          warn "The correct constant to define for the OSGi containers is named OSGi"
+          ENV['OSGi'] = ENV['OSGI']
+        end
         if ENV['OSGi'] 
           @containers |= ENV['OSGi'].split(';')
         end
