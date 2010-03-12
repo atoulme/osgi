@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require File.join(File.dirname(__FILE__), 'execution_environment')
+
 module OSGi
   
   OSGI_GROUP_ID = "osgi"
@@ -102,14 +104,22 @@ module OSGi
     #     A set of Proc objects to match a bundle to a groupId for maven.
     #     The array is examined with the latest added Procs first.
     #     The first proc to return a non-nil answer is used, otherwise the OGSGI_GROUP_ID constant is used.
-    class Options
+    class Options < ::OSGi::ExecutionEnvironmentConfiguration
       attr_accessor :package_resolving_strategy, :bundle_resolving_strategy
 
       def initialize
+        super
         @package_resolving_strategy = :all
         @bundle_resolving_strategy = :latest
       end
-
+    end
+    
+    # Calls to this method return true if the package name passed as argument
+    # is either part of the packages of the framework given by the execution environment
+    # or part of the extra packages specified by the user.
+    #
+    def is_framework_package?(name)
+      options.current_execution_environment.packages.include?(name) || options.extra_packages.include?(name)
     end
   end
   

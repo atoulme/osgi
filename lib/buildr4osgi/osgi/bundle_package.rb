@@ -19,12 +19,19 @@ module OSGi #:nodoc:
   # Created from the Import-Package or Provide-Package (Export-Package) header.
   #
   class BundlePackage
-    attr_accessor :name, :version, :bundles, :imports, :is_export
+    attr_accessor :name, :version, :bundles, :imports, :is_export, :original_version, :optional
     
     def initialize(name, version, args = {}) #:nodoc:
       @name= name
       @is_export = args[:is_export]
-      @version = (is_export ? version.gsub(/\"/, '') : VersionRange.parse(version, true)) if version
+      @optional = args[:optional]
+      @original_version = version
+      if version
+        v = version.gsub(/\"/, '')
+        v = VersionRange.parse(v, true)
+        v ||= v
+        @version = v
+      end
       @bundles = args[:bundles] || []
       @imports = args[:imports] || []
     end
@@ -56,7 +63,18 @@ module OSGi #:nodoc:
       else
         bundles = PackageResolvingStrategies.send(project.osgi.options.package_resolving_strategy, name, bundles)
       end
-      warn "No bundles found exporting the package #{name}; version=#{version}" if (bundles.empty?)
+      if bundles.empty?
+        
+        return [] if project.osgi.is_framework_package?(name) # Is the bundle part of the packages provided by default ?
+          
+          
+        trace "original version: #{original_version}"
+        if optional
+          info "No bundles found exporting the optional package #{name};version=#{version}"
+        else
+          warn "No bundles found exporting the package #{name};version=#{version}"
+        end
+      end
       bundles
       
     end

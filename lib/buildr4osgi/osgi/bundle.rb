@@ -120,7 +120,7 @@ module OSGi #:nodoc:
       
       #Read the imports
       imports = []
-      manifest.first[B_IMPORT_PKG].each_pair {|key, value| imports << BundlePackage.new(key.strip, value["version"], :is_export => false)} unless manifest.first[B_IMPORT_PKG].nil?
+      manifest.first[B_IMPORT_PKG].each_pair {|key, value| imports << BundlePackage.new(key.strip, value["version"], :is_export => false, :optional => value[B_RESOLUTION] == "optional")} unless manifest.first[B_IMPORT_PKG].nil?
       
       #Read the imported packages
       

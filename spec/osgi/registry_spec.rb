@@ -60,6 +60,12 @@ describe OSGi::OSGi do
     define('foo').osgi.registry.should be_instance_of(::OSGi::Registry)
   end
   
+  it 'should help determine whether a package is part of the framework given by the execution environment' do
+    foo = define('foo')
+    foo.osgi.is_framework_package?("com.mypackage").should be_false
+    foo.osgi.is_framework_package?(OSGi::JAVASE16.packages.first).should be_true
+  end
+  
 end
 
 describe OSGi::GroupMatcher do
