@@ -16,6 +16,11 @@
 # Methods added to Project for compiling, handling of resources and generating source documentation.
 module OSGi
   
+  MISSING = "missing"
+  
+  RESOLVED = {}
+    
+  
   module BundleCollector #:nodoc:
     
     attr_accessor :bundles, :projects, :project_dependencies
@@ -24,38 +29,54 @@ module OSGi
     # Returns them as a sorted array.
     #
     def collect(project)
+      info "** Collecting dependencies for #{project}"
       @bundles = []
       @projects = []
-      project.manifest_dependencies().each {|dep| _collect(dep, project)}
+      dependencies = project.manifest_dependencies().each {|dep| _collect(dep)}
+      info "** Done collecting dependencies for #{project}"
+      return dependencies
     end
     
     # Collects the bundles associated with the bundle
     # 
-    def _collect(bundle, project)
+    def _collect(bundle)
       if bundle.is_a?(Bundle)
-        bundle = bundle.resolve(project)
-        unless bundle.nil?
+        unless ::OSGi::RESOLVED[bundle]
+          resolved = bundle.resolve
+          trace "Resolving #{bundle}: #{resolved}"
+          ::OSGi::RESOLVED[bundle] = resolved.nil? ? ::OSGi::MISSING : resolved
+        end
+        bundle = ::OSGi::RESOLVED[bundle]
+        unless bundle.nil? || bundle == ::OSGi::MISSING
           if bundle.is_a?(Buildr::Project)
             @projects << bundle
           elsif !(@bundles.include? bundle)
             @bundles << bundle
-            @bundles |= bundle.fragments(project)       
+            @bundles |= bundle.fragments      
             (bundle.bundles + bundle.imports).each {|b|
-              _collect(b, project)
+              _collect b
             }
           end
         end
       elsif bundle.is_a?(BundlePackage)
-        bundle.resolve(project).each {|b| 
-          if b.is_a?(Buildr::Project)
-            @projects << b
-          elsif !(@bundles.include? b)
-            @bundles << b
-            (b.bundles + b.imports).each {|import|
-              _collect(import, project)  
-            }
-          end
-        }
+        unless ::OSGi::RESOLVED[bundle]
+          resolved = bundle.resolve
+          trace "Resolving #{bundle}: #{resolved}"
+          ::OSGi::RESOLVED[bundle] = (resolved.nil? || (resolved.is_a?(Array) && resolved.empty?)) ? ::OSGi::MISSING : resolved
+        end
+        bundle = ::OSGi::RESOLVED[bundle]
+        unless bundle.nil? || bundle == ::OSGi::MISSING
+          bundle.each {|b| 
+            if b.is_a?(Buildr::Project)
+              @projects << b
+            elsif !(@bundles.include? b)
+              @bundles << b
+              (b.bundles + b.imports).each {|import|
+                _collect import  
+              }
+            end
+          }
+        end
       elsif bundle.is_a?(Buildr::Project)
         @projects << bundle
       end
@@ -204,7 +225,7 @@ module OSGi
     # returns an array of the dependencies of the plugin, read from the manifest.
     def manifest_dependencies()
       as_bundle = Bundle.fromProject(self)
-      as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve(self)}.compact + as_bundle.imports.collect {|i| i.resolve(self)}.flatten
+      as_bundle.nil? ? [] : as_bundle.bundles.collect{|b| b.resolve}.compact + as_bundle.imports.collect {|i| i.resolve}.flatten
     end
     
   end

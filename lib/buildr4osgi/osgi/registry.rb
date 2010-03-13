@@ -86,19 +86,6 @@ module OSGi
     end 
   end
 
-  class OSGi #:nodoc:
-
-    attr_reader :options, :registry
-
-    def initialize(project)
-      if (project.parent)
-        @options = project.parent.osgi.options.dup
-        @registry = project.parent.osgi.registry.dup
-      end
-      @options ||= Options.new
-      @registry ||= ::OSGi::Registry.new
-    end
-
     # The options for the osgi.options method
     #   package_resolving_strategy:
     #     The package resolving strategy, it should be a symbol representing a module function in the OSGi::PackageResolvingStrategies module.
@@ -125,21 +112,14 @@ module OSGi
     def is_framework_package?(name)
       options.current_execution_environment.packages.include?(name) || options.extra_packages.include?(name)
     end
+  
+  
+  def options
+    @options ||= Options.new
   end
   
-  module OSGiOptions
-    include Extension
-    
-    # Makes a osgi instance available to the project.
-    # The osgi object may be used to access OSGi containers
-    # or set options, currently the resolving strategies.
-    def osgi
-      @osgi ||= OSGi.new(self)
-      @osgi
-    end
+  def registry
+    @registry ||= ::OSGi::Registry.new
   end
-end
-
-class Buildr::Project
-  include OSGi::OSGiOptions
+  
 end

@@ -193,9 +193,9 @@ MANIFEST
   
   it "should find the bundle fragments" do
     foo = define("foo")
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     
-    @bundle.fragments(foo).should == [@fragment]
+    @bundle.fragments.should == [@fragment]
   end
   
 end

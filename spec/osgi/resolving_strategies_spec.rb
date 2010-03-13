@@ -24,7 +24,7 @@ describe OSGi::BundleResolvingStrategies do
   end
   
   it 'should use latest by default to resolve bundle dependencies' do
-    define('foo').osgi.options.bundle_resolving_strategy.should eql(:latest)
+    OSGi.options.bundle_resolving_strategy.should eql(:latest)
   end
   
   describe 'latest' do
@@ -70,7 +70,7 @@ describe OSGi::PackageResolvingStrategies do
   end
   
   it 'should use all by default to resolve package dependencies' do
-    define('foo').osgi.options.package_resolving_strategy.should eql(:all)
+    OSGi.options.package_resolving_strategy.should eql(:all)
   end
   
   describe 'all' do

@@ -51,6 +51,7 @@ module OSGi #:nodoc:
     # This is the default function.
     #
     def all(package, bundles)
+      warn "*** SPLIT PACKAGE: #{package} is exported by <#{bundles.join(", ")}>"
       return bundles
     end  
     

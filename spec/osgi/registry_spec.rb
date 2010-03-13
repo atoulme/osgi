@@ -15,61 +15,59 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
+Spec::Runner.configure do |config|
+  config.include Buildr4OSGi::SpecHelpers
+end
+
 describe OSGi::Registry do
 
   it 'should be possible to set containers from the Buildr settings' do
     pending "Doesn't work when using rake coverage"
     yaml = {"osgi" => ({"containers" => ["myContainer"]})}
     write 'home/.buildr/settings.yaml', yaml.to_yaml
-    define("foo").osgi.registry.containers.should == ["myContainer"]
-  end
-  
-  it 'should be accessible from a project' do
-    define('foo').osgi.registry.should be_instance_of(OSGi::Registry)
+    OSGi.registry.containers.should == ["myContainer"]
   end
   
   it 'should be possible to set the containers from the OSGi environment variables' do
     ENV['OSGi'] = "foo;bar"
-    define('foo').osgi.registry.containers.should == ["foo","bar"]
+    OSGi.registry.containers.should == ["foo","bar"]
   end
   
   it 'should fall back on OSGI if the constant OSGi is not defined, issuing a warning' do
+    ENV['OSGi'] = nil
     ENV['OSGI'] = "foo;bar"
-    lambda {define('foo').osgi.registry.containers.should == ["foo","bar"]}.should show_warning "The correct constant to define for the OSGi containers is named OSGi"
+    lambda {OSGi.registry.resolved_containers}.should show_warning "The correct constant to define for the OSGi containers is named OSGi"
     ENV['OSGi'].should == ENV['OSGI']
+  end
+  
+  it 'should not complain if OSGI is set and OSGi is also set' do
     ENV['OSGI'] = nil
-    lambda {define('bar').osgi.registry.containers.should == ["foo","bar"]}.should_not show_warning "The correct constant to define for the OSGi containers is named OSGi"
+    lambda {OSGi.registry.resolved_containers}.should_not show_warning "The correct constant to define for the OSGi containers is named OSGi"
   end
   
-  it 'should be possible to modify the containers in the registry before the resolved_instances method is called' do
-    foo = define('foo')
-    lambda {foo.osgi.registry.containers << "hello"}.should_not raise_error
-    lambda {foo.osgi.registry.containers = ["hello"]}.should_not raise_error
+  it 'should be possible to modify the containers in the registry before the resolved_containers method is called' do
+    lambda {OSGi.registry.containers << "hello"}.should_not raise_error
+    lambda {OSGi.registry.containers = ["hello"]}.should_not raise_error
   end
   
-  it 'should throw an exception when modifying the containers in the registry after the resolved_instances method is called' do
+  it 'should throw an exception when modifying the containers in the registry after the resolved_containers method is called' do
     foo = define('foo')
-    foo.osgi.registry.resolved_containers
-    lambda {foo.osgi.registry.containers << "hello"}.should raise_error(TypeError)
-    lambda {foo.osgi.registry.containers = ["hello"]}.should raise_error(RuntimeError, /Cannot set containers, containers have been resolved already/)
+    OSGi.registry.resolved_containers
+    lambda {OSGi.registry.containers << "hello"}.should raise_error(TypeError)
+    lambda {OSGi.registry.containers = ["hello"]}.should raise_error(RuntimeError, /Cannot set containers, containers have been resolved already/)
   end
 end
 
 
-describe OSGi::OSGi do
-  
-  it 'should add a new osgi method to projects' do
-    define('foo').osgi.should be_instance_of(::OSGi::OSGi)
-  end
+describe OSGi do
   
   it 'should give a handle over the OSGi containers registry' do
-    define('foo').osgi.registry.should be_instance_of(::OSGi::Registry)
+    OSGi.registry.should be_instance_of(::OSGi::Registry)
   end
   
   it 'should help determine whether a package is part of the framework given by the execution environment' do
-    foo = define('foo')
-    foo.osgi.is_framework_package?("com.mypackage").should be_false
-    foo.osgi.is_framework_package?(OSGi::JAVASE16.packages.first).should be_true
+    OSGi.is_framework_package?("com.mypackage").should be_false
+    OSGi.is_framework_package?(OSGi::JAVASE16.packages.first).should be_true
   end
   
 end

@@ -19,6 +19,14 @@ Spec::Runner.configure do |config|
   config.include Buildr4OSGi::SpecHelpers
 end
 
+describe OSGi::BundleCollector do
+  
+  it 'should be able to cache a resolved bundle' do
+    pending "TODO"
+  end
+  
+end
+
 describe OSGi::ProjectExtension do
   
   it 'should give a way to take project dependencies' do
@@ -87,7 +95,7 @@ MANIFEST
     foo = define('foo', :version=> "1.0", :group => "grp" ) {
       package(:bundle)
     }
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
   end
   
@@ -153,7 +161,7 @@ MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") {
       package(:bundle)
     }
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu" && b.version="[3.4.0,3.5.0)"}.should_not be_empty
     foo.manifest_dependencies.select {|b| b.name == "org.eclipse.core.resources" && b.version="3.5.0.R_20090512"}.should_not be_empty
@@ -182,7 +190,7 @@ MANIFEST
         package(:bundle)
       end
     end
-    project('container').osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     project('container:foo').manifest_dependencies.should include(project('container:bar'))
   
   end
@@ -198,7 +206,8 @@ MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") {
       package(:bundle)
     }
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
+    foo.manifest_dependencies
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
   end
   
@@ -235,7 +244,7 @@ MANIFEST
         package(:bundle)
       end
     end
-    project('container').osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     project('container:foo').manifest_dependencies.should include(project('container:bar'))
     project('container:foo').manifest_dependencies.should_not include(project('container:bar2'))
   end
@@ -251,7 +260,7 @@ MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") {
       package(:bundle)
     }
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     foo.manifest_dependencies.select {|b| b.name == "com.ibm.icu"}.should_not be_empty
   end
   
@@ -288,7 +297,7 @@ MANIFEST
         package(:bundle)
       end
     end
-    project('container').osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     project('container:foo').manifest_dependencies.should include(project('container:bar'))
     project('container:foo').manifest_dependencies.should_not include(project('container:bar2'))
   
@@ -305,7 +314,7 @@ MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") {
       package(:bundle)
     }
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
@@ -339,7 +348,7 @@ MANIFEST
         package(:bundle)
       end
     end
-    project('container').osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
@@ -371,7 +380,7 @@ MANIFEST
         package(:bundle)
       end
     end
-    project('container').osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
@@ -403,7 +412,7 @@ MANIFEST
         package(:bundle)
       end
     end
-    project('container').osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     project('container:foo').task('osgi:resolve:dependencies').invoke
     project('container:bar').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
@@ -432,7 +441,7 @@ MANIFEST
       package(:bundle)
     }
     end
-    project('container').osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     project('container').task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     File.read('dependencies.yml').should == <<-CONTENTS
@@ -481,7 +490,7 @@ MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") {
       package(:bundle)
     }
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
@@ -514,7 +523,7 @@ MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") {
       package(:bundle)
     }
-    foo.osgi.registry.containers = [e2]
+    OSGi.registry.containers = [e2]
     foo.task('osgi:resolve:dependencies').invoke
     File.exist?('dependencies.yml').should be_true
     deps = YAML::load(File.read('dependencies.yml'))
@@ -548,7 +557,7 @@ MANIFEST
       foo = define('foo', :version => "1.0", :group => "grp") {
         package(:bundle)
       }
-      foo.osgi.registry.containers = [e2]
+      OSGi.registry.containers = [e2]
       foo.task('osgi:resolve:dependencies').invoke
       File.exist?('dependencies.yml').should be_true
       deps = YAML::load(File.read('dependencies.yml'))
@@ -587,7 +596,7 @@ MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") {
       package(:bundle)
     }
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     foo.dependencies
     foo.task('osgi:install:dependencies').invoke  
     File.exist?(artifact("org.eclipse:org.eclipse.debug.ui:jar:3.4.1.v20080811_r341").to_s).should be_true
@@ -605,7 +614,7 @@ Require-Bundle: org.eclipse.debug.ui,
  org.eclipse.core.runtime.compatibility.registry
 MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") do package(:bundle) end
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     
     foo.task('osgi:resolve:dependencies').invoke
     foo.task('osgi:install:dependencies').invoke
@@ -632,7 +641,7 @@ MANIFEST
     foo = define('foo', :version => "1.0", :group => "grp") {
       package(:bundle)
     }
-    foo.osgi.registry.containers = @eclipse_instances.dup
+    OSGi.registry.containers = @eclipse_instances.dup
     repositories.release_to = 'sftp://example.com/base'
     
     foo.task('osgi:resolve:dependencies').invoke

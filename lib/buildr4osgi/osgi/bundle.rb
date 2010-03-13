@@ -175,22 +175,20 @@ module OSGi #:nodoc:
 
     
     #
-    # Resolves the matching artifacts associated with the project.
+    # Resolves the matching artifacts.
     #
-    def resolve_matching_artifacts(project)
+    def resolve_matching_artifacts
       # Collect the bundle projects, duplicate them so no changes can be applied to them
       # and extend them with the BundleProjectMatcher module
       
       b_projects = BundleProjects::bundle_projects.select {|p|
-        unless p == project
-          p.extend BundleProjectMatcher
-          p.matches(:name => name, :version => version)
-        end
+        p.extend BundleProjectMatcher
+        p.matches(:name => name, :version => version)
       }
       #projects take precedence over the dependencies elsewhere, that's what happens in Eclipse
       # for example
       return b_projects unless b_projects.empty?
-      return project.osgi.registry.resolved_containers.collect {|i| 
+      return OSGi.registry.resolved_containers.collect {|i| 
         i.find(:name => name, :version => version)
       }.flatten.compact.collect{|b| b.dup }
     end
@@ -220,12 +218,12 @@ module OSGi #:nodoc:
     # Resolve a bundle from itself, by finding the appropriate bundle in the OSGi containers.
     # Returns self or the project it represents if a project is found to be self.
     #
-    def resolve(project, bundles = resolve_matching_artifacts(project))
+    def resolve(bundles = resolve_matching_artifacts)
       bundle = case bundles.size
       when 0 then nil
       when 1 then bundles.first
       else
-        BundleResolvingStrategies.send(project.osgi.options.bundle_resolving_strategy, bundles)
+        BundleResolvingStrategies.send(OSGi.options.bundle_resolving_strategy, bundles)
       end
       if bundle.nil?
         warn "Could not resolve bundle for #{self.to_s}" 
@@ -247,8 +245,8 @@ module OSGi #:nodoc:
 
     # Finds the fragments associated with this bundle.
     #
-    def fragments(project)
-      project.osgi.registry.resolved_containers.collect {|i| 
+    def fragments
+      OSGi.registry.resolved_containers.collect {|i| 
         i.find_fragments(:host => name).select{|f|
           if f.fragment.version.is_a? VersionRange
             f.fragment.version.in_range(version)
@@ -268,6 +266,13 @@ module OSGi #:nodoc:
     end
     
     alias :eql? ==
+    
+    # Important for maps.
+    # We absolutely want to avoid having to resolve several times the same bundle
+    #
+    def hash
+      return to_s.hash
+    end
 
   end
 end

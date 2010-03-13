@@ -39,33 +39,31 @@ module OSGi #:nodoc:
     #
     # Resolves the matching artifacts associated with the project.
     #
-    def resolve_matching_artifacts(project)
+    def resolve_matching_artifacts
       # Collect the bundle projects
       # and extend them with the BundleProjectMatcher module
       b_projects = BundleProjects::bundle_projects.select {|p|
-        unless p == project
-          p.extend BundleProjectMatcher 
-          p.matches(:exports_package => name, :version => version)
-        end
+        p.extend BundleProjectMatcher 
+        p.matches(:exports_package => name, :version => version)
       }
       return b_projects unless b_projects.empty?
       
-      resolved = project.osgi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
+      resolved = OSGi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
       resolved.flatten.compact.collect{|b| b.dup}
     end
     
     # Resolves the bundles that export this package.
     #
-    def resolve(project, bundles = resolve_matching_artifacts(project))
+    def resolve(bundles = resolve_matching_artifacts)
       bundles = case bundles.size
       when 0 then []
       when 1 then bundles
       else
-        bundles = PackageResolvingStrategies.send(project.osgi.options.package_resolving_strategy, name, bundles)
+        bundles = PackageResolvingStrategies.send(OSGi.options.package_resolving_strategy, name, bundles)
       end
       if bundles.empty?
         
-        return [] if project.osgi.is_framework_package?(name) # Is the bundle part of the packages provided by default ?
+        return [] if OSGi.is_framework_package?(name) # Is the bundle part of the packages provided by default ?
           
           
         trace "original version: #{original_version}"
@@ -81,6 +79,13 @@ module OSGi #:nodoc:
     
     def to_s #:nodoc:
       "Package #{name}; version #{version}"
+    end
+    
+    # Important for maps.
+    # We absolutely want to avoid having to resolve several times the same package
+    #
+    def hash
+      return to_s.hash
     end
     
     # We just test the name and version as we want to be able to see if an unresolved package and a resolved one represent the same

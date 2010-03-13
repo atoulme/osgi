@@ -27,6 +27,18 @@ describe OSGi::BundlePackage do
   it 'should be able to know if it equals another bundle package' do
     package = OSGi::BundlePackage.new("my.package", "1.0.0")
     package2 = OSGi::BundlePackage.new("my.package", "1.0.0")
-    package.eql?(package2).should be_true
+    package.should == package2
+  end
+  
+  it 'should be able to know if it equals another bundle package with version range' do
+    package = OSGi::BundlePackage.new("javax.servlet", "[2.4.0,3.0.0)")
+    package2 = OSGi::BundlePackage.new("javax.servlet", "[2.4.0,3.0.0)")
+    package.should == package2
+  end
+  
+  it 'should define the same hash when bundles are equal' do
+    package = OSGi::BundlePackage.new("my.package", "1.0.0")
+    package2 = OSGi::BundlePackage.new("my.package", "1.0.0")
+    package.hash.should == package2.hash
   end
 end

@@ -41,6 +41,7 @@ module OSGi #:nodoc:
         warn "Folder #{p_loc_complete} not found!" if !File.exists? p_loc_complete 
         parse(p_loc_complete) if File.exists? p_loc_complete
       end
+      info("Done parsing #{location}")
     end
 
     # Parses the directory and grabs the plugins, adding the created bundle objects to @bundles.

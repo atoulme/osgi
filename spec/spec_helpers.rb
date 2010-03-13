@@ -51,14 +51,26 @@ unless defined?(SpecHelpers)
 
     OSGi_REPOS = File.expand_path File.join(File.dirname(__FILE__), "..", "tmp", "osgi")
 
+    module MockInstanceWriter
+      def registry=(i)
+        @registry=i
+      end
+    end
+    
     class << self
 
       def included(config)
+        config.before(:all) {
+          OSGi.extend MockInstanceWriter
+        }
+        
         config.before(:each) {
           remoteRepositoryForHelpers()
+          OSGi.registry = OSGi::Registry.new
         }
         config.after(:all) {
           FileUtils.rm_rf Buildr4OSGi::SpecHelpers::OSGi_REPOS
+          
         }
       end
     end
