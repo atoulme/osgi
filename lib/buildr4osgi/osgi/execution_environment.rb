@@ -192,8 +192,6 @@ module OSGi
       raise "Cannot register this execution environment" unless ee.is_a? ExecutionEnvironment
       available_ee[ee.name] = ee
     end
-    
-    protected
       
     attr_accessor :available_ee
     

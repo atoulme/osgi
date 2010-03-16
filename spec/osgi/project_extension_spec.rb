@@ -55,6 +55,16 @@ describe OSGi::ProjectExtension do
     }
   end
   
+  it 'should get the execution environments from the project manifest' do
+    write 'META-INF/MANIFEST.MF', <<-MANIFEST
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6,
+ JavaSE-1.7
+MANIFEST
+    foo = define("foo", :version => "1.0") do
+      package(:bundle)
+    end
+    foo.execution_environments.should == [OSGi::JAVASE16, OSGi::JAVASE17]
+  end
 end
 
 describe OSGi::DependenciesTask do
