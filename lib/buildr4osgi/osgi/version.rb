@@ -91,7 +91,7 @@ module OSGi #:nodoc:
     #
     def self.parse(string, max_infinite = false)
       return string if string.is_a?(VersionRange) || string.is_a?(Version)
-      if !string.nil? && (match = string.match /\s*([\[|\(])([0-9|\.]*)\s*,\s*([0-9|\.]*)([\]|\)])/)
+      if !string.nil? && (match = string.match /\s*([\[|\(])([0-9|A-z|\.]*)\s*,\s*([0-9|A-z|\.]*)([\]|\)])/)
         range = VersionRange.new
         range.min = Version.new(match[2])
         range.max = Version.new(match[3])
