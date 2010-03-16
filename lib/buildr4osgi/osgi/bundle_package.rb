@@ -46,6 +46,7 @@ module OSGi #:nodoc:
         p.extend BundleProjectMatcher 
         p.matches(:exports_package => name, :version => version)
       }
+      warn "*** SPLIT PACKAGE: #{self} is exported by more than one project: <#{b_projects.join(", ")}> ABORTING!" if b_projects.size > 1
       return b_projects unless b_projects.empty?
       
       resolved = OSGi.registry.resolved_containers.collect {|i| i.find(:exports_package => name, :version => version)}
@@ -68,9 +69,9 @@ module OSGi #:nodoc:
           
         trace "original version: #{original_version}"
         if optional
-          info "No bundles found exporting the optional package #{name};version=#{version}"
+          info "No bundles found exporting the optional package #{name};version=#{version} (#{original_version})"
         else
-          warn "No bundles found exporting the package #{name};version=#{version}"
+          warn "No bundles found exporting the package #{name};version=#{version} (#{original_version})"
         end
       end
       bundles

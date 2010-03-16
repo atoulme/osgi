@@ -32,7 +32,8 @@ module OSGi
       info "** Collecting dependencies for #{project}"
       @bundles = []
       @projects = []
-      dependencies = project.manifest_dependencies().each {|dep| _collect(dep)}
+      dependencies = project.manifest_dependencies().each {|dep| ; _collect(dep)}
+      @projects.delete project # Remove our own reference if it was added.
       info "** Done collecting dependencies for #{project}"
       return dependencies
     end
@@ -53,8 +54,8 @@ module OSGi
           elsif !(@bundles.include? bundle)
             @bundles << bundle
             @bundles |= bundle.fragments      
-            (bundle.bundles + bundle.imports).each {|b|
-              _collect b
+            (bundle.bundles + bundle.imports).each {|import|
+              _collect import
             }
           end
         end
@@ -71,6 +72,7 @@ module OSGi
               @projects << b
             elsif !(@bundles.include? b)
               @bundles << b
+              @bundles |= b.fragments  
               (b.bundles + b.imports).each {|import|
                 _collect import  
               }
@@ -106,8 +108,12 @@ module OSGi
         
         dependencies = ::OSGi::Dependencies.new(project)
         dependencies.write(_projects.keys) {|hash, p|
-          hash[p]["dependencies"] |= _dependencies[p]
-          hash[p]["projects"] |= _projects[p]
+          unless _dependencies[p].nil?
+            hash[p]["dependencies"] = _dependencies[p]
+          end
+          unless _projects[p].nil?
+            hash[p]["projects"] = _projects[p]
+          end
         }
       end
     end
