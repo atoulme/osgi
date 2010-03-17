@@ -103,6 +103,23 @@ module OSGi
     # Artifacts to include under /lib.
     attr_accessor :libs
     
+    # Calls to this method will make the bundle use
+    # the bundle manifest version if defined.
+    # An exception will be raised if no manifest file is present or no Bundle-Version is present in it.
+    #
+    #
+    def use_bundle_version
+      manifest_location = File.join(@project.base_dir, "META-INF", "MANIFEST.MF")
+      if File.exists?(manifest_location)
+        read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read(manifest_location)).main
+        raise "Cannot use use_bundle_version if no Bundle-Version header is specified in the manifest" if read_m["Bundle-Version"].nil?
+        manifest["Bundle-Version"] = read_m["Bundle-Version"]
+      else
+        raise "Cannot use use_bundle_version if no manifest is present in the project"
+      end
+      process_qualifier
+    end
+    
     def initialize(*args) #:nodoc:
       super
       @libs = []
@@ -114,6 +131,18 @@ module OSGi
           
         end
       end
+    end
+    
+    def process_qualifier
+      if manifest["Bundle-Version"].match /\.qualifier$/
+        manifest["Bundle-Version"] = "#{$~.pre_match}.#{Time.now.strftime("%y%m%d%H%M%S")}"
+      end
+    end
+    
+    private
+    
+    def associate_with(project)
+      @project = project
     end
     
   end
@@ -141,7 +170,7 @@ module OSGi
         p_r = ResourcesTask.define_task
         p_r.send :associate_with, project, :main
         p_r.from("#{project.base_dir}").exclude("**/.*").exclude("**/*.jar").exclude("**/*.java")
-        p_r.exclude("src/**").exclude("*src").exclude("*src/**").exclude("build.properties")
+        p_r.exclude("src/**").exclude("*src*").exclude("*src/**").exclude("build.properties")
         p_r.exclude("bin").exclude("bin/**")
         p_r.exclude("target/**").exclude("target")
         
@@ -157,11 +186,19 @@ module OSGi
           read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read(manifest_location)).main
           manifest = project.manifest.merge(read_m)
         end
+        
         manifest["Bundle-Version"] = project.version # the version of the bundle packaged is ALWAYS the version of the project.
+        # You can override it later with use_bundle_version
+        
+        
         manifest["Bundle-SymbolicName"] ||= project.name.split(":").last # if it was resetted to nil, we force the id to be added back.
+        
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
         plugin.with [compile.target, resources.target, p_r.target, properties.target].compact
+        plugin.process_qualifier
       end
+      task.send :associate_with, self
+      task
     end
     
     def package_as_bundle_spec(spec) #:nodoc:
