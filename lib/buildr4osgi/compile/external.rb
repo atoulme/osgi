@@ -27,7 +27,7 @@ module Buildr4OSGi
       def compile(sources, target, dependencies) #:nodoc:
         check_options options, OPTIONS
         cmd_args = []
-        # tools.jar contains the Java compiler.
+        cmd_args << '-classpath' << dependencies.join(File::PATH_SEPARATOR) unless dependencies.empty?
         source_paths = sources.select { |source| File.directory?(source) }
         cmd_args << '-sourcepath' << source_paths.join(File::PATH_SEPARATOR) unless source_paths.empty?
         cmd_args << '-d' << File.expand_path(target)
@@ -35,12 +35,12 @@ module Buildr4OSGi
         cmd_args += files_from_sources(sources)
         unless Buildr.application.options.dryrun
           fail "ENV['EXTERNAL_COMPILER'] is not defined" if ENV['EXTERNAL_COMPILER'].nil?
-          javac_path = "#{ENV['EXTERNAL_COMPILER']}#{File::SEPARATOR}bin#{File::SEPARATOR}javac"
+          javac_path = "#{ENV['EXTERNAL_COMPILER']}#{File::SEPARATOR}bin#{File::SEPARATOR}java"
           ecj_path = File.expand_path(File.join(File.dirname(__FILE__), "ecj-#{Buildr4OSGi::CompilerSupport::OSGiC::CURRENT_JDT_COMPILER}.jar"))
           final_args = ([javac_path,"-classpath", ecj_path, "org.eclipse.jdt.internal.compiler.batch.Main"] + cmd_args).join(' ')
           trace(final_args)
-          system(final_args) or
-              fail 'Failed to compile, see errors above'
+          info %x[#{final_args}]
+          fail 'Failed to compile, see errors above' unless $?.success?
         end
       end
 
