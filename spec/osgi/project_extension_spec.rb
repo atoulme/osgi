@@ -65,6 +65,55 @@ MANIFEST
     end
     foo.execution_environments.should == [OSGi::JAVASE16, OSGi::JAVASE17]
   end
+  
+  it 'should get the execution environment from the project manifest (bis)' do
+    write 'META-INF/MANIFEST.MF', <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: uh-core
+Bundle-SymbolicName: org.thingy
+Bundle-Version: 3.6.2.qualifier
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Import-Package: blah,
+ blob
+MANIFEST
+    foo = define("foo", :version => "1.0") do
+      package(:bundle)
+    end
+    foo.execution_environments.should == [OSGi::J2SE15]
+  end
+  
+  it 'should return an empty array when no execution environment is specified' do
+    write 'META-INF/MANIFEST.MF', <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: uh-core
+Bundle-SymbolicName: org.thingy
+Bundle-Version: 3.6.2.qualifier
+Import-Package: blah,
+ blob
+MANIFEST
+    foo = define("foo", :version => "1.0") do
+      package(:bundle)
+    end
+    foo.execution_environments.should == []
+  end
+  
+  it 'should return nil when no bundle packaging is specified' do
+    write 'META-INF/MANIFEST.MF', <<-MANIFEST
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: uh-core
+Bundle-SymbolicName: org.thingy
+Bundle-Version: 3.6.2.qualifier
+Import-Package: blah,
+ blob
+MANIFEST
+    foo = define("foo", :version => "1.0") do
+      package(:jar)
+    end
+    foo.execution_environments.should be_nil
+  end
 end
 
 describe OSGi::DependenciesTask do

@@ -243,7 +243,7 @@ module OSGi
       m = ::Buildr::Packaging::Java::Manifest.new(File.exists?("META-INF/MANIFEST.MF") ? File.read("META-INF/MANIFEST.MF") : nil) 
       m.main.merge!(manifest)
       m.main.merge!(packaging.first.manifest)
-      Manifest.read(m.to_s).first["Bundle-RequiredExecutionEnvironment"].keys.compact.flatten.collect {|ee| OSGi.options.available_ee[ee]}
+      (Manifest.read(m.to_s).first["Bundle-RequiredExecutionEnvironment"] || {}).keys.compact.flatten.collect {|ee| OSGi.options.available_ee[ee]}
     end
     
   end
