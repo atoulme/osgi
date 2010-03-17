@@ -14,3 +14,4 @@
 # the License.
 
 require 'buildr4osgi/compile/compiler'
+require 'buildr4osgi/compile/external'
