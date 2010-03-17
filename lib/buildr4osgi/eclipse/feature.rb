@@ -189,7 +189,11 @@ PROPERTIES
           
           artifact = case 
             when plugin.is_a?(String)
-              Buildr::artifact(plugin)
+              if plugin.match /.*:.*:.*/ # is it an artifact string representation ?
+                Buildr::artifact(plugin)
+              else # treat it as a .jar
+                file(plugin)
+              end
             when plugin.is_a?(Buildr::Project)
               Buildr::artifact(plugin.package(:plugin))
             else 
@@ -218,7 +222,7 @@ PROPERTIES
         sourceBundle = plugin.package(:plugin).manifest.main["Eclipse-SourceBundle"]
       else
         plugin.invoke
-        if !File.exist?(plugin.to_s) and plugin.classifier.to_s == 'sources'
+        if !File.exist?(plugin.to_s) && plugin.classifier.to_s == 'sources'
           #make sure the artifact was downloaded.
           #if the artifact is for the sources feature and it could not be located,
           #don't crash. should we put something in the manifest?
@@ -238,10 +242,10 @@ PROPERTIES
             end
           end
         end
-        group = plugin.to_hash[:group]
+        #group = plugin.to_hash[:group]
         size = File.size(plugin.to_s)
       end
-      if plugin.classifier.to_s == 'sources' and (sourceBundle.nil? || name.nil? || version.nil?)
+      if plugin.is_a?(Artifact) && plugin.classifier.to_s == 'sources' && (sourceBundle.nil? || name.nil? || version.nil?)
         # Try, if possible, to get the name and the version from the original binaries then.
         runtimeArtifact = Buildr::artifact(plugin.to_hash.merge(:classifier => nil, :type => :jar))
         runtimeManifest = extraPackagedManifest(runtimeArtifact)
@@ -259,7 +263,7 @@ PROPERTIES
         warn "Could not determine the size of #{plugin}"
         size ||= 0
       end
-      return {:id => name, :group => group, :version => version, 
+      return {:id => name, :version => version, 
         :"download-size" => size, :"install-size" => size, :unpack => false, :manifest => repackage}
     end
     
@@ -318,7 +322,11 @@ PROPERTIES
           
           artifact = case 
             when plugin.is_a?(String)
-              Buildr::artifact(plugin)
+               if plugin.match /.*:.*:.*/ # is it an artifact string representation ?
+                  Buildr::artifact(plugin)
+                else # treat it as a .jar
+                  file(plugin)
+                end
             when plugin.is_a?(Buildr::Project)
               Buildr::artifact(plugin.package(:sources))
             else 
