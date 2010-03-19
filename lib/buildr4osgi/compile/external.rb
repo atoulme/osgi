@@ -32,12 +32,14 @@ module Buildr4OSGi
         cmd_args << '-sourcepath' << source_paths.join(File::PATH_SEPARATOR) unless source_paths.empty?
         cmd_args << '-d' << File.expand_path(target)
         cmd_args += externalc_args
-        cmd_args += files_from_sources(sources)
+        TempFile.open() {|tmp|
+          tmp.write files_from_sources(sources)
+          cmd_args << "@#{tmp.path}"
+        }
         unless Buildr.application.options.dryrun
           fail "ENV['EXTERNAL_COMPILER'] is not defined" if ENV['EXTERNAL_COMPILER'].nil?
-          javac_path = "#{ENV['EXTERNAL_COMPILER']}#{File::SEPARATOR}bin#{File::SEPARATOR}java"
-          ecj_path = File.expand_path(File.join(File.dirname(__FILE__), "ecj-#{Buildr4OSGi::CompilerSupport::OSGiC::CURRENT_JDT_COMPILER}.jar"))
-          final_args = ([javac_path,"-classpath", ecj_path, "org.eclipse.jdt.internal.compiler.batch.Main"] + cmd_args).join(' ')
+          javac_path = "#{ENV['EXTERNAL_COMPILER']}#{File::SEPARATOR}bin#{File::SEPARATOR}javac"
+          final_args = cmd_args.insert(0, javac_path).push('2>&1').join(' ')
           trace(final_args)
           info %x[#{final_args}]
           fail 'Failed to compile, see errors above' unless $?.success?
@@ -49,7 +51,7 @@ module Buildr4OSGi
       # See arg list here: http://publib.boulder.ibm.com/infocenter/rsahelp/v7r0m0/index.jsp?topic=/org.eclipse.jdt.doc.isv/guide/jdt_api_compile.htm
       def externalc_args #:nodoc:
         args = []  
-        args << '-warn:none' unless options[:warnings]
+        args << '-nowarn' unless options[:warnings]
         args << '-verbose' if Buildr.application.options.trace
         args << '-g' if options[:debug]
         args << '-deprecation' if options[:deprecation]
