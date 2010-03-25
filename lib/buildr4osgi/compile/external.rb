@@ -32,13 +32,13 @@ module Buildr4OSGi
         cmd_args << '-sourcepath' << source_paths.join(File::PATH_SEPARATOR) unless source_paths.empty?
         cmd_args << '-d' << File.expand_path(target)
         cmd_args += externalc_args
-        TempFile.open() {|tmp|
-          tmp.write files_from_sources(sources)
+        Tempfile.open("external") {|tmp|
+          tmp.write files_from_sources(sources).join(' ')
           cmd_args << "@#{tmp.path}"
         }
         unless Buildr.application.options.dryrun
           fail "ENV['EXTERNAL_COMPILER'] is not defined" if ENV['EXTERNAL_COMPILER'].nil?
-          javac_path = "#{ENV['EXTERNAL_COMPILER']}#{File::SEPARATOR}bin#{File::SEPARATOR}javac"
+          javac_path = File.join(ENV['EXTERNAL_COMPILER'], "bin", "javac")
           final_args = cmd_args.insert(0, javac_path).push('2>&1').join(' ')
           trace(final_args)
           info %x[#{final_args}]
