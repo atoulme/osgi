@@ -24,15 +24,19 @@ module Buildr::Scala
   # Scala::Check is available when using Scala::Test or Scala::Specs
   module Check
     VERSION = '1.5'
-    
+
     class << self
       def version
         Buildr.settings.build['scala.check'] || VERSION
       end
-      
+
+      def classifier
+        Buildr.settings.build['scala.check.classifier'] || ""
+      end
+
       def dependencies
-        ["org.scala-tools.testing:scalacheck:jar:#{version}"]
-      end  
+        ["org.scala-tools.testing:scalacheck:jar:#{classifier}:#{version}"]
+      end
 
     private
       def const_missing(const)
@@ -42,8 +46,8 @@ module Buildr::Scala
       end
     end
   end
-  
-  
+
+
   # ScalaTest framework, the default test framework for Scala tests.
   #
   # Support the following options:
@@ -58,30 +62,30 @@ module Buildr::Scala
       def version
         Buildr.settings.build['scala.test'] || VERSION
       end
-      
+
       def dependencies
-        ["org.scalatest:scalatest:jar:#{version}"] + Check.dependencies + 
+        ["org.scalatest:scalatest:jar:#{version}"] + Check.dependencies +
           JMock.dependencies + JUnit.dependencies
-      end  
+      end
 
       def applies_to?(project) #:nodoc:
         !Dir[project.path_to(:source, :test, :scala, '**/*.scala')].empty?
-      end 
-      
+      end
+
     private
       def const_missing(const)
         return super unless const == :REQUIRES # TODO: remove in 1.5
         Buildr.application.deprecated "Please use Scala::Test.dependencies/.version instead of ScalaTest::REQUIRES/VERSION"
         dependencies
       end
-    end          
+    end
 
     # annotation-based group inclusion
     attr_accessor :group_includes
-    
+
     # annotation-based group exclusion
     attr_accessor :group_excludes
-    
+
     def initialize(test_task, options)
       super
       @group_includes = []
@@ -100,7 +104,8 @@ module Buildr::Scala
       scalatest.each do |suite|
         info "ScalaTest #{suite.inspect}"
         # Use Ant to execute the ScalaTest task, gives us performance and reporting.
-        reportFile = File.join(task.report_to.to_s, "TEST-#{suite}.txt")
+        reportDir = task.report_to.to_s
+        reportFile = File.join(reportDir, "TEST-#{suite}.txt")
         taskdef = Buildr.artifacts(self.class.dependencies).each(&:invoke).map(&:to_s)
         Buildr.ant('scalatest') do |ant|
           ant.taskdef :name=>'scalatest', :classname=>'org.scalatest.tools.ScalaTestTask',
@@ -109,17 +114,19 @@ module Buildr::Scala
             ant.suite    :classname=>suite
             ant.reporter :type=>'stdout', :config=>reporter_options
             ant.reporter :type=>'file', :filename=> reportFile, :config=>reporter_options
+            ant.reporter :type=>(ScalaTest.version == "1.0") ? "xml" : "junitxml",
+                         :directory=> reportDir, :config=>reporter_options
             # TODO: This should be name=>value pairs!
             #ant.includes group_includes.join(" ") if group_includes
             #ant.excludes group_excludes.join(" ") if group_excludes
             (options[:properties] || []).each { |name, value| ant.config :name=>name, :value=>value }
           end
         end
-        
+
         # Parse for failures, errors, etc.
         # This is a bit of a pain right now because ScalaTest doesn't flush its
-        # output synchronously before the Ant test finishes so we have to loop 
-        # and wait for an indication that the test run was completed. 
+        # output synchronously before the Ant test finishes so we have to loop
+        # and wait for an indication that the test run was completed.
         failed = false
         completed = false
         wait = 0
@@ -132,19 +139,19 @@ module Buildr::Scala
             end
           end
           wait += 1
-          break if (failed || wait > 10) 
+          break if (failed || wait > 10)
           unless completed
             sleep(1)
           end
         end
         success << suite if (completed && !failed)
       end
-      
+
       success
     end # run
 
   end # ScalaTest
-  
+
 end
 
 

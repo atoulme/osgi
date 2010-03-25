@@ -21,19 +21,19 @@ module Buildr
 
     # We use this to present environment variable as arrays.
     class EnvArray < Array #:nodoc:
-    
+
       def initialize(name)
         @name = name.upcase
         replace((ENV[@name] || ENV[@name.downcase] || '').split(/\s*,\s*/).reject(&:empty?))
       end
 
-      (Array.instance_methods - Object.instance_methods - Enumerable.instance_methods).sort.each do |method|
-        class_eval %{def #{method}(*args, &block) ; result = super ; write ; result ; end}
+      (Array.instance_methods - Object.instance_methods - Enumerable.instance_methods - ['each']).sort.each do |method|
+        class_eval %{def #{method}(*args, &block) ; result = super ; write_envarray ; result ; end}
       end
 
     private
 
-      def write
+      def write_envarray
         ENV[@name.downcase] = nil
         ENV[@name] = map(&:to_s).join(',')
       end
@@ -57,7 +57,7 @@ module Buildr
         ENV['http_proxy'] = nil
         ENV['HTTP_PROXY'] = url
       end
-   
+
       # Returns the HTTPS_PROXY URL.
       def https
         ENV['HTTPS_PROXY'] || ENV['https_proxy']
@@ -69,7 +69,7 @@ module Buildr
         ENV['HTTPS_PROXY'] = url
       end
 
-      # Returns list of hosts to exclude from proxying (NO_PROXY). 
+      # Returns list of hosts to exclude from proxying (NO_PROXY).
       def exclude
         @exclude ||= EnvArray.new('NO_PROXY')
       end

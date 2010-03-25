@@ -218,7 +218,7 @@ describe Buildr.method(:filter) do
   def source
     File.expand_path('src')
   end
-  
+
   it 'should return a Filter for the source' do
     filter(source).should be_kind_of(Filter)
   end
@@ -308,6 +308,11 @@ describe Buildr::Filter do
     @filter.from('src').into('target').include('file2', 'file3').run
     Dir['target/*'].sort.should eql(['target/file2', 'target/file3'])
   end
+  
+  it 'should respond to :include with regular expressions and use these inclusion patterns' do
+    @filter.from('src').into('target').include(/file[2|3]/).run
+    Dir['target/*'].sort.should eql(['target/file2', 'target/file3'])
+  end
 
   it 'should respond to :exclude and return self' do
     @filter.exclude('file').should be(@filter)
@@ -315,6 +320,11 @@ describe Buildr::Filter do
 
   it 'should respond to :exclude and use these exclusion patterns' do
     @filter.from('src').into('target').exclude('file2', 'file3').run
+    Dir['target/*'].sort.should eql(['target/file1', 'target/file4'])
+  end
+  
+  it 'should respond to :exclude  with regular expressions and use these exclusion patterns' do
+    @filter.from('src').into('target').exclude(/file[2|3]/).run
     Dir['target/*'].sort.should eql(['target/file1', 'target/file4'])
   end
 
@@ -419,6 +429,12 @@ describe Buildr::Filter do
     @filter.using('key1'=>'value1', 'key2'=>'value2').mapper.should eql(:maven)
   end
 
+  it 'should apply hash mapping with boolean values' do
+    write "src/file", "${key1} and ${key2}"
+    @filter.from('src').into('target').using(:key1=>true, :key2=>false).run
+    read("target/file").should eql("true and false")
+  end
+
   it 'should apply hash mapping using regular expression' do
     1.upto(4) { |i| write "src/file#{i}", "file#{i} with #key1# and #key2#" }
     @filter.from('src').into('target').using(/#(.*?)#/, 'key1'=>'value1', 'key2'=>'value2').run
@@ -495,14 +511,14 @@ describe Buildr::Filter do
   end
 end
 
-describe Filter::Mapper do 
-  
+describe Filter::Mapper do
+
   module MooMapper
     def moo_config(*args, &block)
       raise ArgumentError, "Expected moo block" unless block_given?
       { :moos => args, :callback => block }
     end
-    
+
     def moo_transform(content, path = nil)
       content.gsub(/moo+/i) do |str|
         moos = yield :moos # same than config[:moos]
@@ -645,7 +661,7 @@ name3=double\\\\hash
 PROPS
     hash.should == {'name1'=>"with\tand", 'name2'=>"with\nand\f", 'name3'=>'double\hash'}
   end
-  
+
   it 'should ignore whitespace' do
     hash = Hash.from_java_properties('name1 = value1')
     hash.should == {'name1'=>'value1'}

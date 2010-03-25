@@ -25,7 +25,7 @@ require 'highline/import'
 
 
 module Buildr
-  
+
   module Util
     extend self
 
@@ -37,7 +37,7 @@ module Buildr
     # prefer this function instead of using Gem.win_platform?.
     #
     # Gem.win_platform? only checks these RUBY_PLATFORM global,
-    # that in some cases like when running on JRuby is not 
+    # that in some cases like when running on JRuby is not
     # succifient for our purpose:
     #
     # For JRuby, the value for RUBY_PLATFORM will always be 'java'
@@ -77,7 +77,7 @@ module Buildr
         path
       end
     end
-    
+
     # Return the timestamp of file, without having to create a file task
     def timestamp(file)
       if File.exist?(file)
@@ -121,7 +121,7 @@ module Buildr
 
       # Install gems specified by each Gem::Dependency if they are missing. This method prompts the user
       # for permission before installing anything.
-      # 
+      #
       # Returns the installed Gem::Dependency objects or fails if permission not granted or when buildr
       # is not running interactively (on a tty)
       def install(*dependencies)
@@ -334,11 +334,11 @@ if Buildr::Util.java_platform?
     end
     private :mv
   end
-  
+
   module RakeFileUtils #:nodoc:
     def rake_merge_option(args, defaults)
       defaults[:verbose] = false if defaults[:verbose] == :default
-      
+
       if Hash === args.last
         defaults.update(args.last)
         args.pop
@@ -348,56 +348,56 @@ if Buildr::Util.java_platform?
     end
     private :rake_merge_option
   end
-  
+
   module Buildr
     class ProcessStatus
       attr_reader :pid, :termsig, :stopsig, :exitstatus
-      
+
       def initialize(pid, success, exitstatus)
         @pid = pid
         @success = success
         @exitstatus = exitstatus
-        
+
         @termsig = nil
         @stopsig = nil
       end
-      
+
       def &(num)
         pid & num
       end
-      
+
       def ==(other)
         pid == other.pid
       end
-      
+
       def >>(num)
         pid >> num
       end
-      
+
       def coredump?
         false
       end
-      
+
       def exited?
         true
       end
-      
+
       def stopped?
         false
       end
-      
+
       def success?
         @success
       end
-      
+
       def to_i
         pid
       end
-      
+
       def to_int
         pid
       end
-      
+
       def to_s
         pid.to_s
       end
@@ -406,18 +406,65 @@ if Buildr::Util.java_platform?
 
   module FileUtils
     extend FFI::Library
+
+    ffi_lib FFI::Platform::LIBC if Buildr::Util::win_os?
+
     alias_method :__jruby_system__, :system
     #attach_function :system, [:string], :int #see BUILDR-348
     alias_method :__native_system__, :system
     alias_method :system, :__jruby_system__
-    
+
     # code "borrowed" directly from Rake
     def sh(*cmd, &block)
       options = (Hash === cmd.last) ? cmd.pop : {}
       unless block_given?
         show_command = cmd.join(" ")
         show_command = show_command[0,42] + "..."
-        
+
+        block = lambda { |ok, status|
+          ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}]"
+        }
+      end
+      if RakeFileUtils.verbose_flag == :default
+        options[:verbose] = false
+      else
+        options[:verbose] ||= RakeFileUtils.verbose_flag
+      end
+      options[:noop]    ||= RakeFileUtils.nowrite_flag
+      rake_check_options options, :noop, :verbose
+      rake_output_message cmd.join(" ") if options[:verbose]
+      unless options[:noop]
+        if Buildr::Util.win_os?
+          # Ruby uses forward slashes regardless of platform,
+          # unfortunately cd c:/some/path fails on Windows
+          pwd = Dir.pwd.gsub(%r{/}, '\\')
+          cd = "cd /d \"#{pwd}\" && "
+        else
+          cd = "cd '#{Dir.pwd}' && "
+        end
+        args = if cmd.size > 1 then cmd[1..cmd.size] else [] end
+
+        res = if Buildr::Util.win_os? && cmd.size == 1
+          __native_system__("#{cd} call #{cmd.first}")
+        else
+          arg_str = args.map { |a| "'#{a}'" }
+          __native_system__(cd + cmd.first + ' ' + arg_str.join(' '))
+        end
+        $? = Buildr::ProcessStatus.new(0, res == 0, res)    # KLUDGE
+        block.call(res == 0, $?)
+      end
+    end
+
+  end
+else
+  module FileUtils
+    # code "borrowed" directly from Rake
+    def sh(*cmd, &block)
+      options = (Hash === cmd.last) ? cmd.pop : {}
+      unless block_given?
+        show_command = cmd.join(" ")
+        show_command = show_command[0,42] + "..."
+
         block = lambda { |ok, status|
           ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}]"
         }
@@ -433,17 +480,16 @@ if Buildr::Util.java_platform?
       unless options[:noop]
         cd = "cd '#{Dir.pwd}' && "
         args = if cmd.size > 1 then cmd[1..cmd.size] else [] end
-        
+
         res = if Buildr::Util.win_os? && cmd.size == 1
-          __native_system__("#{cd} call #{cmd.first}")
+          system("#{cd} call #{cmd.first}")
         else
           arg_str = args.map { |a| "'#{a}'" }
-          __native_system__(cd + cmd.first + ' ' + arg_str.join(' '))
+          system(cd + cmd.first + ' ' + arg_str.join(' '))
         end
-        $? = Buildr::ProcessStatus.new(0, res == 0, res)    # KLUDGE
-        block.call(res == 0, $?)
+
+        block.call(res, $?)
       end
     end
-
   end
 end

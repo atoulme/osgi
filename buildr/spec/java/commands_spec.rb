@@ -13,24 +13,22 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require File.join(File.dirname(__FILE__), '../spec_helpers')
 
-# TODO: Antwrap 0.7 requires this monkeypatch, have it fixed.
-class Array #:nodoc:
-  alias :nitems :size
+
+describe Java::Commands do
+
+  it "should not be verbose by default" do
+    write "build.xml", <<-BUILD
+    <project name="MyProject" default="dist" basedir=".">
+        <description>
+            simple example build file
+        </description>
+        <target name="dist"/>
+    </project>
+BUILD
+    lambda { Java::Commands.java("org.apache.tools.ant.Main", :classpath => Buildr::Ant.dependencies) }.should_not show_info(/java/)
+    lambda { Java::Commands.java("org.apache.tools.ant.Main", :classpath => Buildr::Ant.dependencies, :verbose => true) }.should show_info(/java/)
+  end
+
 end
-
-require 'buildr/core/common'
-require 'buildr/core/application'
-require 'buildr/core/project'
-require 'buildr/core/environment'
-require 'buildr/core/help'
-require 'buildr/core/build'
-require 'buildr/core/filter'
-require 'buildr/core/compile'
-require 'buildr/core/test'
-require 'buildr/core/shell'
-require 'buildr/core/checks'
-require 'buildr/core/transports'
-require 'buildr/core/generate'
-require 'buildr/core/cc'
-require 'buildr/core/osx' if RUBY_PLATFORM =~ /darwin/

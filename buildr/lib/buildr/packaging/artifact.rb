@@ -44,6 +44,20 @@ module Buildr
       def included(mod)
         mod.extend self
       end
+
+      def extend_object(base)
+        base.instance_eval { alias :install_old :install     } if base.respond_to? :install
+        base.instance_eval { alias :uninstall_old :uninstall } if base.respond_to? :uninstall
+        base.instance_eval { alias :upload_old :upload       } if base.respond_to? :upload
+        super
+      end
+
+      def extended(base)
+        #We try to keep the previous instance methods defined on the base instance if there were ones.
+        base.instance_eval { alias :install :install_old     } if base.respond_to? :install_old
+        base.instance_eval { alias :uninstall :uninstall_old } if base.respond_to? :uninstall_old
+        base.instance_eval { alias :upload :upload_old       } if base.respond_to? :upload_old
+      end
     end
 
     # The artifact identifier.
@@ -90,7 +104,7 @@ module Buildr
 
     # :call-seq:
     #   pom => Artifact
-    # 
+    #
     # Convenience method that returns a POM artifact.
     def pom
       return self if type == :pom
@@ -99,7 +113,7 @@ module Buildr
 
     # :call-seq:
     #   sources_artifact => Artifact
-    # 
+    #
     # Convenience method that returns a sources artifact.
     def sources_artifact
       sources_spec = to_spec_hash.merge(:classifier=>'sources')
@@ -123,7 +137,7 @@ module Buildr
         xml.classifier    classifier if classifier
       end
     end
-    
+
     def install
       pom.install if pom && pom != self
       invoke
@@ -137,7 +151,7 @@ module Buildr
 
     def uninstall
       installed = Buildr.repositories.locate(self)
-      rm installed if File.exist?(installed) 
+      rm installed if File.exist?(installed)
       pom.uninstall if pom && pom != self
     end
 
@@ -183,14 +197,14 @@ module Buildr
       ARTIFACT_ATTRIBUTES.each { |key| instance_variable_set("@#{key}", spec[key]) }
       self
     end
-    
+
     def group_path
       group.gsub('.', '/')
     end
 
   end
 
- 
+
   # A file task referencing an artifact in the local repository.
   #
   # This task includes all the artifact attributes (group, id, version, etc). It points
@@ -323,18 +337,24 @@ module Buildr
     #   install test
     # See also Buildr#install and Buildr#upload.
     def from(path)
-      path = File.expand_path(path.to_s)
-      enhance [path] do
-        mkpath File.dirname(name)
-        pom.invoke unless type == :pom
-        cp path, name
-        info "Installed #{path} as #{to_spec}"
+      path = path.is_a?(Rake::Task) ? path : File.expand_path(path.to_s)
+      unless exist?
+        enhance [path] do
+          path = File.expand_path(path.to_s)
+          mkpath File.dirname(name)
+          pom.invoke unless type == :pom
+
+          cp path, name
+          info "Installed #{path} as #{to_spec}"
+        end
       end
       unless type == :pom
         pom.enhance do
+          unless pom.exist?
           mkpath File.dirname(pom.name)
           File.open(pom.name, 'w') { |file| file.write pom.pom_xml }
         end
+      end
       end
       self
     end
@@ -343,7 +363,7 @@ module Buildr
 
     # :call-seq:
     #   download
-    # 
+    #
     # Downloads an artifact from one of the remote repositories, and stores it in the local
     # repository. Raises an exception if the artifact is not found.
     #
@@ -353,7 +373,7 @@ module Buildr
       trace "Downloading #{to_spec}"
       remote = Buildr.repositories.remote.map { |repo_url| URI === repo_url ? repo_url : URI.parse(repo_url) }
       remote = remote.each { |repo_url| repo_url.path += '/' unless repo_url.path[-1] == '/' }
-      fail 'No remote repositories defined!' if remote.empty?
+      fail "Unable to download #{to_spec}. No remote repositories defined." if remote.empty?
       exact_success = remote.find do |repo_url|
         begin
           path = "#{group_path}/#{id}/#{version}/#{File.basename(name)}"
@@ -411,21 +431,21 @@ module Buildr
       fail "Failed to download #{to_spec}, tried the following repositories:\n#{remote_uris.join("\n")}"
     end
   end
-  
-  
+
+
   # An artifact that is optional.
   # If downloading fails, the user will be informed but it will not raise an exception.
   class OptionalArtifact < Artifact
-    
+
     protected
-    
+
     # If downloading fails, the user will be informed but it will not raise an exception.
     def download
       super
-    rescue 
+    rescue
       info "Failed to download #{to_spec}. Skipping it."
     end
-    
+
   end
 
 
@@ -458,8 +478,8 @@ module Buildr
     # Sets the path to the local repository.
     #
     # The best place to set the local repository path is from a buildr.rb file
-    # located in the .buildr directory under your home directory. That way all 
-    # your projects will share the same path, without affecting other developers 
+    # located in the .buildr directory under your home directory. That way all
+    # your projects will share the same path, without affecting other developers
     # collaborating on these projects.
     def local=(dir)
       @local = dir ? File.expand_path(dir) : nil
@@ -698,6 +718,7 @@ module Buildr
   # * :under -- The group identifier
   # * :version -- The version number
   # * :type -- The artifact type (optional)
+  # * :classifier -- The artifact classifier (optional)
   #
   # For example:
   #   group 'xbean', 'xbean_xpath', 'xmlpublic', :under=>'xmlbeans', :version=>'2.1.0'
@@ -705,8 +726,14 @@ module Buildr
   #   group %w{xbean xbean_xpath xmlpublic}, :under=>'xmlbeans', :version=>'2.1.0'
   def group(*args)
     hash = args.pop
-    args.flatten.map { |id| artifact :group=>hash[:under], :type=>hash[:type], :version=>hash[:version], :id=>id }
-  end 
+    args.flatten.map do |id|
+      artifact :group   => hash[:under],
+               :type    => hash[:type],
+               :version => hash[:version],
+               :classifier => hash[:classifier],
+               :id => id
+    end
+  end
 
   # :call-seq:
   #   install(artifacts)

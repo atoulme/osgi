@@ -22,8 +22,12 @@ unless defined?(SpecHelpers)
 
   # For testing we use the gem requirements specified on the buildr.gemspec
   spec = Gem::Specification.load(File.expand_path('../buildr.gemspec', File.dirname(__FILE__)))
-  spec.dependencies.each { |dep| gem dep.name, dep.version_requirements.to_s }
-
+  if (spec.respond_to? :requirement)
+    spec.dependencies.each { |dep| gem dep.name, dep.requirement.to_s }
+  else
+    # Dependency.version_requirements deprecated in rubygems 1.3.6
+    spec.dependencies.each { |dep| gem dep.name, dep.version_requirements.to_s }
+  end
   # Make sure to load from these paths first, we don't want to load any
   # code from Gem library.
   $LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__)),
@@ -40,7 +44,7 @@ unless defined?(SpecHelpers)
 
   # Give a chance for plugins to do a few things before requiring the sandbox.
   include SandboxHook if defined?(SandboxHook)
-  
+
   require File.expand_path('sandbox', File.dirname(__FILE__))
 
   module SpecHelpers
@@ -56,7 +60,7 @@ unless defined?(SpecHelpers)
         end
       end
     end
-    
+
     class << Buildr.application
       alias :deprecated_without_capture :deprecated
       def deprecated(message)
@@ -118,6 +122,23 @@ unless defined?(SpecHelpers)
       MessageWithSeverityMatcher.new :puts, message
     end
 
+    # Yields a block that should try exiting the application.
+    # Accepts
+    #
+    # For example:
+    #   test_exit(1) {  puts "Hello" ; exit(1) }.should show("Hello")
+    #
+    def test_exit(status = nil)
+      return lambda {
+        begin
+          yield
+          raise "Exit was not called!"
+        rescue SystemExit => e
+          raise "Exit status incorrect! Expected: #{status}, got #{e.status}" if status && (e.status != status)
+        end
+      }
+    end
+
     class ::Rake::Task
       alias :execute_without_a_record :execute
       def execute(args)
@@ -151,7 +172,7 @@ unless defined?(SpecHelpers)
           "Expected the tasks #{expected} to not run, but they all ran."
         else
           "Expected the tasks #{expected} to not run, and all but #{remaining} ran."
-        end 
+        end
       end
 
       def but_not(*tasks)
@@ -226,7 +247,7 @@ unless defined?(SpecHelpers)
         "URI with path matching #{@expression}"
       end
     end
-    
+
     # Matches a parsed URI's path against the given regular expression
     def uri(re)
       UriPathMatcher.new(re)
@@ -256,16 +277,16 @@ unless defined?(SpecHelpers)
       AbsolutePathMatcher.new(path)
     end
 
-    
+
     # Value covered by range. For example:
     #   (1..5).should cover(3)
     def cover(value)
       simple_matcher :cover do |given|
-        value >= given.min && value <= given.max 
+        value >= given.min && value <= given.max
       end
     end
 
-  
+
     def suppress_stdout
       stdout = $stdout
       $stdout = StringIO.new
@@ -308,7 +329,7 @@ unless defined?(SpecHelpers)
         yield
       ensure
         Buildr.application.instance_eval { @original_dir = original_dir }
-      end 
+      end
     end
 
 

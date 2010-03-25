@@ -26,11 +26,12 @@ require 'buildr/groovy'
 require 'buildr/scala'
 
 Java.load # Anything added to the classpath.
-artifacts(TestFramework.frameworks.map(&:dependencies).flatten, JUnit.ant_taskdef).each do |path|
+artifacts(TestFramework.frameworks.map(&:dependencies).flatten, JUnit.ant_taskdef, Buildr::Groovy::Groovyc.dependencies).each do |path|
   file(path).invoke
 end
 
 ENV['HOME'] = File.expand_path(File.join(File.dirname(__FILE__), '..', 'tmp', 'home'))
+mkpath ENV['HOME']
 
 # We need to run all tests inside a _sandbox, tacking a snapshot of Buildr before the test,
 # and restoring everything to its previous state after the test. Damn state changes.
@@ -134,6 +135,7 @@ module Sandbox
 
     $LOAD_PATH.replace @_sandbox[:load_path]
     FileUtils.rm_rf @temp
+    mkpath ENV['HOME']
 
     # Get rid of all artifacts.
     @_sandbox[:artifacts].tap { |artifacts| Artifact.class_eval { @artifacts = artifacts } }

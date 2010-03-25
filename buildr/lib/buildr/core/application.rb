@@ -115,8 +115,8 @@ module Buildr
   class Application < Rake::Application #:nodoc:
 
     # Deprecated: rakefile/Rakefile, removed in 1.5
-    DEFAULT_BUILDFILES = ['buildfile', 'Buildfile'] + DEFAULT_RAKEFILES
-    
+    DEFAULT_BUILDFILES = ['buildfile', 'Buildfile', 'buildfile.rb', 'Buildfile.rb'] + DEFAULT_RAKEFILES
+
     attr_reader :rakefiles, :requires
     private :rakefiles, :requires
 
@@ -125,7 +125,7 @@ module Buildr
       @rakefiles = DEFAULT_BUILDFILES.dup
       @top_level_tasks = []
       @home_dir = File.expand_path('.buildr', ENV['HOME'])
-      mkpath @home_dir unless File.exist?(@home_dir)
+      mkpath @home_dir if !File.exist?(@home_dir) && File.writable?(ENV['HOME'])
       @settings = Settings.new(self)
       @on_completion = []
       @on_failure = []
@@ -173,7 +173,7 @@ module Buildr
 
     # Files that complement the buildfile itself
     def build_files #:nodoc:
-      deprecated 'Please call buildfile.prerequisites instead' 
+      deprecated 'Please call buildfile.prerequisites instead'
       buildfile.prerequisites
     end
 
@@ -208,7 +208,7 @@ module Buildr
     end
 
   protected
-    
+
     def load_buildfile # replaces load_rakefile
       standard_exception_handling do
         find_buildfile
@@ -255,10 +255,10 @@ module Buildr
         opts.banner = "buildr [-f rakefile] {options} targets..."
         opts.separator ""
         opts.separator "Options are ..."
-        
+
         opts.on_tail("-h", "--help", "-H", "Display this help message.") do
           puts opts
-          exit
+          exit 0
         end
         standard_buildr_options.each { |args| opts.on(*args) }
       end.parse!
@@ -275,18 +275,18 @@ module Buildr
         ],
         ['--execute',  '-E CODE',
           "Execute some Ruby code after loading the buildfile",
-          lambda { |value| options.execute = value }            
+          lambda { |value| options.execute = value }
         ],
         ['--environment',  '-e ENV',
           "Environment name (e.g. development, test, production).",
-          lambda { |value| ENV['BUILDR_ENV'] = value }            
+          lambda { |value| ENV['BUILDR_ENV'] = value }
         ],
         ['--generate [PATH]',
          "Generate buildfile from either pom.xml file or directory path.",
           lambda { |value|
             value ||= File.exist?('pom.xml') ? 'pom.xml' : Dir.pwd
             raw_generate_buildfile value
-            exit
+            exit 0
           }
         ],
         ['--libdir', '-I LIBDIR', "Include LIBDIR in the search path for required modules.",
@@ -302,8 +302,8 @@ module Buildr
           lambda { |value| verbose(false) }
         ],
         ['--buildfile', '-f FILE', "Use FILE as the buildfile.",
-          lambda { |value| 
-            @rakefiles.clear 
+          lambda { |value|
+            @rakefiles.clear
             @rakefiles << value
           }
         ],
@@ -354,8 +354,8 @@ module Buildr
         ],
         ['--version', '-V', "Display the program version.",
           lambda { |value|
-            puts "Buildr #{Buildr::VERSION} #{RUBY_PLATFORM[/java/] && '(JRuby '+JRUBY_VERSION+')'}"
-            exit
+            puts "Buildr #{Buildr::VERSION} #{RUBY_PLATFORM[/java/] && '(JRuby '+ (Buildr.settings.build['jruby'] || JRUBY_VERSION) +')'}"
+            exit 0
           }
         ]
       ]
@@ -434,7 +434,7 @@ module Buildr
       end
     end
 
-    # Load artifact specs from the build.yaml file, making them available 
+    # Load artifact specs from the build.yaml file, making them available
     # by name ( ruby symbols ).
     def load_artifact_ns #:nodoc:
       hash = settings.build['artifacts']
@@ -443,14 +443,14 @@ module Buildr
       # Currently we only use one artifact namespace to rule them all. (the root NS)
       Buildr::ArtifactNamespace.load(:root => hash)
     end
-    
+
     # Loads buildr.rb files from home/.buildr directory and project directory.
     # Loads custom tasks from .rake files in tasks directory.
     def load_tasks #:nodoc:
       # TODO: this might need to be split up, look for deprecated features, better method name.
       old = File.expand_path('buildr.rb', ENV['HOME'])
       new = File.expand_path('buildr.rb', home_dir)
-      if File.exist?(old) && !File.exist?(new) 
+      if File.exist?(old) && !File.exist?(new)
         warn "Deprecated: Please move buildr.rb from your home directory to the .buildr directory in your home directory"
       end
       # Load home/.buildr/buildr.rb in preference
@@ -507,13 +507,14 @@ module Buildr
         $stderr.puts $terminal.color(ex.message, :red)
         exit(1)
       rescue Exception => ex
-        title, message = "Your build failed with an error", "#{Dir.pwd}:\n#{ex.message}"
+        ex_msg = ex.class.name == "Exception" ? ex.message : "#{ex.class.name} : #{ex.message}"
+        title, message = "Your build failed with an error", "#{Dir.pwd}:\n#{ex_msg}"
         @on_failure.each do |block|
           block.call(title, message, ex) rescue nil
         end
         # Exit with error message
         $stderr.puts "Buildr aborted!"
-        $stderr.puts $terminal.color(ex.message, :red)
+        $stderr.puts $terminal.color(ex_msg, :red)
         if options.trace
           $stderr.puts ex.backtrace.join("\n")
         else
@@ -525,13 +526,13 @@ module Buildr
     end
 
   end
-  
-  
+
+
   # This task stands for the buildfile and all its associated helper files (e.g., buildr.rb, build.yaml).
   # By using this task as a prerequisite for other tasks, you can ensure these tasks will be needed
   # whenever the buildfile changes.
   class BuildfileTask < Rake::FileTask #:nodoc:
-    
+
     def timestamp
       ([name] + prerequisites).map { |f| File.stat(f).mtime }.max rescue Time.now
     end
@@ -567,14 +568,13 @@ end
 
 
 # Add a touch of color when available and running in terminal.
+HighLine.use_color = false
 if $stdout.isatty
   begin
     require 'Win32/Console/ANSI' if Config::CONFIG['host_os'] =~ /mswin/
     HighLine.use_color = true
   rescue LoadError
   end
-else
-  HighLine.use_color = false
 end
 
 
@@ -635,7 +635,7 @@ module Rake #:nodoc
           old_chain, Thread.current[:rake_chain] = Thread.current[:rake_chain], new_chain
           execute(task_args) if needed?
         ensure
-          Thread.current[:rake_chain] = nil
+          Thread.current[:rake_chain] = old_chain
         end
       end
     end

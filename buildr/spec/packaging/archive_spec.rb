@@ -128,7 +128,7 @@ describe 'ArchiveTask', :shared=>true do
     write "#{@dir}/sub/test"
     archive(@archive).include(@dir).exclude("#{@dir}/sub").invoke
     inspect_archive do |archive|
-      archive.keys.select { |file| file =~ /sub/ }.should be_empty 
+      archive.keys.select { |file| file =~ /sub/ }.should be_empty
     end
   end
 
@@ -230,19 +230,19 @@ describe 'ArchiveTask', :shared=>true do
     create_for_merge do |src|
       archive(@archive).merge(src).include(File.basename(@files.first))
       archive(@archive).invoke
-      inspect_archive do |archive| 
+      inspect_archive do |archive|
         archive[File.basename(@files.first)].should eql(content_for(@files.first))
         archive[File.basename(@files.last)].should be_nil
       end
     end
   end
-  
+
   it 'should expand another archive file with exclude pattern' do
     create_for_merge do |src|
       archive(@archive).merge(src).exclude(File.basename(@files.first))
       archive(@archive).invoke
-      inspect_archive do |archive| 
-        @files[1..-1].each { |f| archive[File.basename(f)].should eql(content_for(f)) } 
+      inspect_archive do |archive|
+        @files[1..-1].each { |f| archive[File.basename(f)].should eql(content_for(f)) }
         archive[File.basename(@files.first)].should be_nil
       end
     end
@@ -296,7 +296,7 @@ describe 'ArchiveTask', :shared=>true do
     # all included files newer.
     File.utime Time.now - 100, Time.now - 100, @archive
     archive(@archive).include(@files).invoke
-    File.stat(@archive).mtime.should be_close(Time.now, 10) 
+    File.stat(@archive).mtime.should be_close(Time.now, 10)
   end
 
   it 'should do nothing if all files are uptodate' do
@@ -304,7 +304,7 @@ describe 'ArchiveTask', :shared=>true do
     # By touching all files in the past, there's nothing new to update.
     (@files + [@archive]).each { |f| File.utime Time.now - 100, Time.now - 100, f }
     archive(@archive).include(@files).invoke
-    File.stat(@archive).mtime.should be_close(Time.now - 100, 10) 
+    File.stat(@archive).mtime.should be_close(Time.now - 100, 10)
   end
 
   it 'should update if one of the files is recent' do
@@ -353,7 +353,7 @@ describe TarTask, ' gzipped' do
 
   def inspect_archive
     entries = {}
-    Zlib::GzipReader.open @archive do |gzip| 
+    Zlib::GzipReader.open @archive do |gzip|
       Archive::Tar::Minitar.open gzip, 'r' do |reader|
         reader.each { |entry| entries[entry.directory ? "#{entry.name}/" : entry.name] = entry.read }
       end
@@ -392,7 +392,7 @@ describe ZipTask do
     # http://jira.codehaus.org/browse/JRUBY-3300
     hello = File.expand_path('src/main/bin/hello')
     write hello, 'echo hi'
-    File.chmod(0777,  hello) || 
+    File.chmod(0777,  hello) ||
     fail("Failed to set permission on #{hello}") unless (File.stat(hello).mode & 0777) == 0777
 
     zip('foo.zip').include('src/main/bin/*').invoke
@@ -410,6 +410,8 @@ describe Unzip do
     @files = %w{Test1.txt Text2.html}.map { |file| File.join(@dir, file) }.
       each { |file| write file, content_for(file) }
     @target = File.expand_path('target')
+    @targz = File.expand_path('test.tar.gz')
+    @targz2 = File.expand_path('test.tgz')
   end
 
   # Not too smart, we just create some content based on file name to
@@ -418,11 +420,21 @@ describe Unzip do
     "Content for #{File.basename(file)}"
   end
 
+  def with_tar(*args)
+    tar(@targz).include(*args.empty? ? @files : args).invoke
+    yield
+  end
+
+  def with_tar_too(*args)
+    tar(@targz2).include(*args.empty? ? @files : args).invoke
+    yield
+  end
+
   def with_zip(*args)
     zip(@zip).include(*args.empty? ? @files : args).invoke
     yield
   end
-    
+
   it 'should touch target directory' do
     with_zip do
       mkdir @target
@@ -439,9 +451,30 @@ describe Unzip do
     end
   end
 
+  it 'should expand files from a tar.gz file' do
+    with_tar do
+      unzip(@target=>@targz).target.invoke
+      @files.each { |f| File.read(File.join(@target, File.basename(f))).should eql(content_for(f)) }
+    end
+  end
+
+  it 'should expand files from a .tgz file' do
+    with_tar_too do
+      unzip(@target=>@targz2).target.invoke
+      @files.each { |f| File.read(File.join(@target, File.basename(f))).should eql(content_for(f)) }
+    end
+  end
+
   it 'should expand all files' do
     with_zip do
       unzip(@target=>@zip).target.invoke
+      FileList[File.join(@target, '*')].size.should be(@files.size)
+    end
+  end
+
+  it 'should expand all files from a .tar.gz file' do
+    with_tar do
+      unzip(@target=>@targz).target.invoke
       FileList[File.join(@target, '*')].size.should be(@files.size)
     end
   end
@@ -455,10 +488,28 @@ describe Unzip do
     end
   end
 
+  it 'should expand only included files from a .tar.gz file' do
+    with_tar do
+      only = File.basename(@files.first)
+      unzip(@target=>@targz).include(only).target.invoke
+      FileList[File.join(@target, '*')].should include(File.expand_path(only, @target))
+      FileList[File.join(@target, '*')].size.should be(1)
+    end
+  end
+
   it 'should expand all but excluded files' do
     with_zip do
       except = File.basename(@files.first)
       unzip(@target=>@zip).exclude(except).target.invoke
+      FileList[File.join(@target, '*')].should_not include(File.expand_path(except, @target))
+      FileList[File.join(@target, '*')].size.should be(@files.size - 1)
+    end
+  end
+
+  it 'should expand all but excluded files with a .tar.gz file' do
+    with_tar do
+      except = File.basename(@files.first)
+      unzip(@target=>@targz).exclude(except).target.invoke
       FileList[File.join(@target, '*')].should_not include(File.expand_path(except, @target))
       FileList[File.join(@target, '*')].size.should be(@files.size - 1)
     end
@@ -476,6 +527,22 @@ describe Unzip do
 
       Rake::Task.clear ; rm_rf @target
       unzip(@target=>@zip).include('test/**/*').target.invoke
+      FileList[File.join(@target, 'test/path/*')].size.should be(2)
+    end
+  end
+
+  it 'should include with nested path patterns with a .tar.gz file' do
+    with_tar @files, :path=>'test/path' do
+      only = File.basename(@files.first)
+      unzip(@target=>@targz).include(only).target.invoke
+      FileList[File.join(@target, '*')].should be_empty
+
+      Rake::Task.clear ; rm_rf @target
+      unzip(@target=>@targz).include('test/path/' + only).target.invoke
+      FileList[File.join(@target, 'test/path/*')].size.should be(1)
+
+      Rake::Task.clear ; rm_rf @target
+      unzip(@target=>@targz).include('test/**/*').target.invoke
       FileList[File.join(@target, 'test/path/*')].size.should be(2)
     end
   end
@@ -499,11 +566,40 @@ describe Unzip do
       FileList[File.join(@target, 'path/*')].size.should be(2)
     end
   end
-  
+
+  it 'should include with relative path with a .tar.gz file' do
+    with_tar @files, :path=>'test/path' do
+      only = File.basename(@files.first)
+      unzip(@target=>@targz).tap { |unzip| unzip.from_path('test').include(only) }.target.invoke
+      FileList[File.join(@target, '*')].should be_empty
+
+      Rake::Task.clear ; rm_rf @target
+      unzip(@target=>@targz).tap { |unzip| unzip.from_path('test').include('test/*') }.target.invoke
+      FileList[File.join(@target, 'path/*')].should be_empty
+
+      Rake::Task.clear ; rm_rf @target
+      unzip(@target=>@targz).tap { |unzip| unzip.from_path('test').include('path/*' + only) }.target.invoke
+      FileList[File.join(@target, 'path/*')].size.should be(1)
+
+      Rake::Task.clear ; rm_rf @target
+      unzip(@target=>@targz).tap { |unzip| unzip.from_path('test').include('path/*') }.target.invoke
+      FileList[File.join(@target, 'path/*')].size.should be(2)
+    end
+  end
+
   it 'should exclude with relative path' do
     with_zip @files, :path=>'test' do
       except = File.basename(@files.first)
       unzip(@target=>@zip).tap { |unzip| unzip.from_path('test').exclude(except) }.target.invoke
+      FileList[File.join(@target, '*')].should include(File.join(@target, File.basename(@files[1])))
+      FileList[File.join(@target, '*')].size.should be(@files.size - 1)
+    end
+  end
+
+  it 'should exclude with relative path on a tar.gz file' do
+    with_tar @files, :path=>'test' do
+      except = File.basename(@files.first)
+      unzip(@target=>@targz).tap { |unzip| unzip.from_path('test').exclude(except) }.target.invoke
       FileList[File.join(@target, '*')].should include(File.join(@target, File.basename(@files[1])))
       FileList[File.join(@target, '*')].size.should be(@files.size - 1)
     end
@@ -516,6 +612,16 @@ describe Unzip do
     zip(@zip).include(@files, :path => 'src').include(lib_files, :path => 'lib').invoke
 
     unzip(@target=>@zip).tap { |unzip| unzip.from_path('lib') }.target.invoke
+    FileList[File.join(@target, '**/*')].should have(2).files
+  end
+
+  it "should handle relative paths without any includes or excludes with a tar.gz file" do
+    lib_files = %w{Test3.so Test4.rb}.
+      map { |file| File.join(@dir, file) }.
+      each { |file| write file, content_for(file) }
+    tar(@targz).include(@files, :path => 'src').include(lib_files, :path => 'lib').invoke
+
+    unzip(@target=>@targz).tap { |unzip| unzip.from_path('lib') }.target.invoke
     FileList[File.join(@target, '**/*')].should have(2).files
   end
 

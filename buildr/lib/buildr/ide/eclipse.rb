@@ -72,7 +72,7 @@ module Buildr
       def natures(*values)
         if values.size > 0
           @natures ||= []
-          @natures += values
+          @natures += values.flatten
         else
           @natures || (@project.parent ? @project.parent.eclipse.natures : [])
         end
@@ -97,7 +97,7 @@ module Buildr
       def classpath_containers(*values)
         if values.size > 0
           @classpath_containers ||= []
-          @classpath_containers += values
+          @classpath_containers += values.flatten
         else
           @classpath_containers || (@project.parent ? @project.parent.eclipse.classpath_containers : [])
         end
@@ -109,7 +109,7 @@ module Buildr
       def exclude_libs(*values)
         if values.size > 0
           @exclude_libs ||= []
-          @exclude_libs += values
+          @exclude_libs += values.flatten
         else
           @exclude_libs || (@project.parent ? @project.parent.eclipse.exclude_libs : [])
         end
@@ -141,7 +141,7 @@ module Buildr
       def builders(*values)
         if values.size > 0
           @builders ||= []
-          @builders += values
+          @builders += values.flatten
         else
           @builders || (@project.parent ? @project.parent.eclipse.builders : [])
         end
@@ -191,89 +191,98 @@ module Buildr
     end
 
     after_define(:eclipse => :package) do |project|
-      eclipse = project.task('eclipse')
+      # Need to enhance because using project.projects during load phase of the
+      # buildfile has harmful side-effects on project definition order
+      project.enhance do
+        eclipse = project.task('eclipse')
+        # We don't create the .project and .classpath files if the project contains projects.
+        if project.projects.empty?
 
-      eclipse.enhance [ file(project.path_to('.classpath')), file(project.path_to('.project')) ]
+          eclipse.enhance [ file(project.path_to('.classpath')), file(project.path_to('.project')) ]
 
-      # The only thing we need to look for is a change in the Buildfile.
-      file(project.path_to('.classpath')=>Buildr.application.buildfile) do |task|
-        if (project.eclipse.natures.reject { |x| x.is_a?(Symbol) }.size > 0)
-          info "Writing #{task.name}"
+          # The only thing we need to look for is a change in the Buildfile.
+          file(project.path_to('.classpath')=>Buildr.application.buildfile) do |task|
+            if (project.eclipse.natures.reject { |x| x.is_a?(Symbol) }.size > 0)
+              info "Writing #{task.name}"
 
-          m2repo = Buildr::Repositories.instance.local
+              m2repo = Buildr::Repositories.instance.local
 
-          File.open(task.name, 'w') do |file|
-            classpathentry = ClasspathEntryWriter.new project, file
-            classpathentry.write do
-              # Note: Use the test classpath since Eclipse compiles both "main" and "test" classes using the same classpath
-              cp = project.test.compile.dependencies.map(&:to_s) - [ project.compile.target.to_s, project.resources.target.to_s ]
-              cp = cp.uniq
+              File.open(task.name, 'w') do |file|
+                classpathentry = ClasspathEntryWriter.new project, file
+                classpathentry.write do
+                  # Note: Use the test classpath since Eclipse compiles both "main" and "test" classes using the same classpath
+                  cp = project.test.compile.dependencies.map(&:to_s) - [ project.compile.target.to_s, project.resources.target.to_s ]
+                  cp = cp.uniq
 
-              # Convert classpath elements into applicable Project objects
-              cp.collect! { |path| Buildr.projects.detect { |prj| prj.packages.detect { |pkg| pkg.to_s == path } } || path }
+                  # Convert classpath elements into applicable Project objects
+                  cp.collect! { |path| Buildr.projects.detect { |prj| prj.packages.detect { |pkg| pkg.to_s == path } } || path }
 
-              # Remove excluded libs
-              cp -= project.eclipse.exclude_libs.map(&:to_s)
+                  # Remove excluded libs
+                  cp -= project.eclipse.exclude_libs.map(&:to_s)
 
-              # project_libs: artifacts created by other projects
-              project_libs, others = cp.partition { |path| path.is_a?(Project) }
+                  # project_libs: artifacts created by other projects
+                  project_libs, others = cp.partition { |path| path.is_a?(Project) }
 
-              # Separate artifacts under known classpath variable paths
-              # including artifacts located in local Maven2 repository
-              vars = []
-              project.eclipse.classpath_variables.merge(project.eclipse.options.m2_repo_var => m2repo).each do |name, path|
-                matching, others = others.partition { |f| File.expand_path(f.to_s).index(path) == 0 }
-                matching.each do |m|
-                  vars << [m, name, path]
+                  # Separate artifacts under known classpath variable paths
+                  # including artifacts located in local Maven2 repository
+                  vars = []
+                  project.eclipse.classpath_variables.merge(project.eclipse.options.m2_repo_var => m2repo).each do |name, path|
+                    matching, others = others.partition { |f| File.expand_path(f.to_s).index(path) == 0 }
+                    matching.each do |m|
+                      vars << [m, name, path]
+                    end
+                  end
+
+                  # Generated: Any non-file classpath elements in the project are assumed to be generated
+                  libs, generated = others.partition { |path| File.file?(path.to_s) }
+
+                  classpathentry.src project.compile.sources + generated
+                  classpathentry.src project.resources
+
+                  if project.test.compile.target
+                    classpathentry.src project.test.compile
+                    classpathentry.src project.test.resources
+                  end
+
+                  # Classpath elements from other projects
+                  classpathentry.src_projects project_libs
+
+                  classpathentry.output project.compile.target if project.compile.target
+                  classpathentry.lib libs
+                  classpathentry.var vars
+
+                  project.eclipse.classpath_containers.each { |container|
+                    classpathentry.con container
+                  }
                 end
               end
-
-              # Generated: Any non-file classpath elements in the project are assumed to be generated
-              libs, generated = others.partition { |path| File.file?(path.to_s) }
-
-              classpathentry.src project.compile.sources + generated
-              classpathentry.src project.resources
-
-              if project.test.compile.target
-                classpathentry.src project.test.compile
-                classpathentry.src project.test.resources
-              end
-
-              # Classpath elements from other projects
-              classpathentry.src_projects project_libs
-
-              classpathentry.output project.compile.target if project.compile.target
-              classpathentry.lib libs
-              classpathentry.var vars
-
-              project.eclipse.classpath_containers.each { |container|
-                classpathentry.con container
-              }
             end
           end
-        end
-      end
 
-      # The only thing we need to look for is a change in the Buildfile.
-      file(project.path_to('.project')=>Buildr.application.buildfile) do |task|
-        if (project.eclipse.natures.reject { |x| x.is_a?(Symbol) }.size > 0)
-          info "Writing #{task.name}"
-          File.open(task.name, 'w') do |file|
-            xml = Builder::XmlMarkup.new(:target=>file, :indent=>2)
-            xml.projectDescription do
-              xml.name project.id
-              xml.projects
-              xml.buildSpec do
-                project.eclipse.builders.each { |builder|
-                  xml.buildCommand do
-                    xml.name builder
+          # The only thing we need to look for is a change in the Buildfile.
+          file(project.path_to('.project')=>Buildr.application.buildfile) do |task|
+            info "Writing #{task.name}"
+            File.open(task.name, 'w') do |file|
+              xml = Builder::XmlMarkup.new(:target=>file, :indent=>2)
+              xml.projectDescription do
+                xml.name project.id
+                xml.projects
+                unless project.eclipse.builders.empty?
+                  xml.buildSpec do
+                    project.eclipse.builders.each { |builder|
+                      xml.buildCommand do
+                        xml.name builder
+                      end
+                    }
                   end
-                }
-              end
-              xml.natures do
-                project.eclipse.natures.each { |nature|
-                  xml.nature nature unless nature.is_a? Symbol
-                }
+                end
+                unless project.eclipse.natures.empty?
+                  xml.natures do
+                    project.eclipse.natures.each { |nature|
+                      xml.nature nature unless nature.is_a? Symbol
+                    }
+                  end
+                end
               end
             end
           end

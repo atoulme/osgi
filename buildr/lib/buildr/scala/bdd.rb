@@ -20,29 +20,36 @@ require 'buildr/java/bdd'
 require 'buildr/scala/tests'
 
 module Buildr::Scala
-  
+
   # Specs is a Scala based BDD framework.
   # To use in your project:
   #
   #   test.using :specs
-  # 
+  #
   # This framework will search in your project for:
   #   src/spec/scala/**/*.scala
   class Specs < Buildr::TestFramework::JavaBDD
     @lang = :scala
     @bdd_dir = :spec
 
-    VERSION = '1.6.0'
-    
+    VERSION = '1.6.2'
+
     class << self
       def version
         Buildr.settings.build['scala.specs'] || VERSION
       end
-      
+
       def dependencies
-        ["org.scala-tools.testing:specs:jar:#{version}"] + Check.dependencies + JUnit.dependencies
+        unless @dependencies
+          super
+          # Add utility classes (e.g. SpecsSingletonRunner) and other dependencies
+          @dependencies |= [ File.join(File.dirname(__FILE__)) ] +
+                           ["org.scala-tools.testing:specs:jar:#{version}"] +
+                           Check.dependencies + JUnit.dependencies + Scalac.dependencies
+        end
+        @dependencies
       end
-      
+
       def applies_to?(project)  #:nodoc:
         !Dir[project.path_to(:source, bdd_dir, lang, '**/*.scala')].empty?
       end
@@ -57,28 +64,25 @@ module Buildr::Scala
 
     def initialize(task, options) #:nodoc:
       super
-      
+
       specs = task.project.path_to(:source, :spec, :scala)
       task.compile.from specs if File.directory?(specs)
-      
+
       resources = task.project.path_to(:source, :spec, :resources)
       task.resources.from resources if File.directory?(resources)
     end
-    
+
     def tests(dependencies)
-      dependencies += [task.compile.target.to_s]
       candidates = filter_classes(dependencies, :interfaces => ['org.specs.Specification'])
-      
+
       Java.load   # Java is already loaded, but just in case
-      
+
       filter = Java.org.apache.buildr.JavaTestFilter.new(dependencies.to_java(Java.java.lang.String))
       filter.add_fields ['MODULE$'].to_java(Java.java.lang.String)
       filter.filter(candidates.to_java(Java.java.lang.String)).map { |s| s[0..(s.size - 2)] }
     end
-    
+
     def run(specs, dependencies)  #:nodoc:
-      dependencies += [task.compile.target.to_s, File.join(File.dirname(__FILE__))] + Scalac.dependencies
-      
       cmd_options = { :properties => options[:properties],
                       :java_args => options[:java_args],
                       :classpath => dependencies,
