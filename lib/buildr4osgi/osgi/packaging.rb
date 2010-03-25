@@ -251,7 +251,7 @@ module OSGi
         p_r.filter.exclude(/target/)
         
         properties = ResourcesTask.define_task(:resources_src)
-        properties.send :associate_with, self, :src
+        properties.send :associate_with, self, :resources_src
         
         unless compile.nil?
           compile.sources.each {|src_folder|
