@@ -239,10 +239,8 @@ module OSGi
       # Code copied straight from Bundle.fromProject
       packaging = project.packages.select {|package| package.is_a?(BundlePackaging)}
       raise "More than one bundle packaging is defined over the project #{project.id}, see BOSGI-16." if packaging.size > 1
-      return nil if packaging.empty?   
       m = ::Buildr::Packaging::Java::Manifest.new(File.exists?("META-INF/MANIFEST.MF") ? File.read("META-INF/MANIFEST.MF") : nil) 
-      m.main.merge!(manifest)
-      m.main.merge!(packaging.first.manifest)
+      m.main.merge!(packaging.first.manifest) unless packaging.empty? 
       (Manifest.read(m.to_s).first["Bundle-RequiredExecutionEnvironment"] || {}).keys.compact.flatten.collect {|ee| OSGi.options.available_ee[ee]}
     end
     

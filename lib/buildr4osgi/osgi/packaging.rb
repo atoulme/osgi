@@ -147,6 +147,77 @@ module OSGi
     
   end
   
+  class RootFilter < Buildr::Filter
+    
+    def pattern_match(file, pattern)
+      case
+      when pattern.is_a?(Regexp)
+        return file.match(pattern)
+      when pattern.is_a?(String)
+        return File.fnmatch(pattern, file)
+      when pattern.is_a?(Proc)
+        return pattern.call(file)
+      else
+        raise "Cannot interpret pattern #{pattern}"
+      end
+    end
+    # :call-seq:
+    #    run => boolean
+    #
+    # Runs the filter.
+    def run
+      sources.each { |source| raise "Source directory #{source} doesn't exist" unless File.exist?(source.to_s) }
+      raise 'No target directory specified, where am I going to copy the files to?' if target.nil?
+
+      copy_map = sources.flatten.map(&:to_s).inject({}) do |map, source|
+        files = Util.recursive_with_dot_files(source).
+          map { |file| Util.relative_path(file, source) }.
+          select { |file| @include.empty? || @include.any? { |pattern| pattern_match(file, pattern) } }.
+          reject { |file| @exclude.any? { |pattern| pattern_match(file, pattern) } }
+        files.each do |file|
+          src, dest = File.expand_path(file, source), File.expand_path(file, target.to_s)
+          map[file] = src if !File.exist?(dest) || File.stat(src).mtime >= File.stat(dest).mtime
+        end
+        map
+      end
+        
+      mkpath target.to_s
+      return false if copy_map.empty?
+
+      copy_map.each do |path, source|
+        dest = File.expand_path(path, target.to_s)
+        if File.directory?(source)
+          mkpath dest
+        else
+          mkpath File.dirname(dest)
+          if @mapper.mapper_type
+            mapped = @mapper.transform(File.open(source, 'rb') { |file| file.read }, path)
+            File.open(dest, 'wb') { |file| file.write mapped }
+          else # no mapping
+            cp source, dest
+            File.chmod(0664, dest)
+          end
+        end
+      end
+      touch target.to_s
+      true
+    end
+    
+  end
+  
+  # A copy/paste of the ResourcesTask specifically modified for the job
+  # of including resources located at the root of the project.
+  #
+  class RootResourcesTask < Buildr::ResourcesTask
+
+    def initialize(*args) #:nodoc:
+      super
+      @filter = RootFilter.new
+      @filter.using Buildr.settings.profile['filter'] if Hash === Buildr.settings.profile['filter']
+    end
+
+  end
+  
   module ActAsOSGiBundle
     include Extension
     
@@ -167,34 +238,43 @@ module OSGi
         # This is a bit hacky and not fully respecting the project layout, so we might find some alternative later
         # to do the job by extending the layout object, and maybe making this resource task available as a subclass
         # of ResourcesTask.
-        p_r = ResourcesTask.define_task
-        p_r.send :associate_with, project, :main
-        p_r.from("#{project.base_dir}").exclude("**/.*").exclude("**/*.jar").exclude("**/*.java")
-        p_r.exclude("src/**").exclude("*src*").exclude("*src/**").exclude("build.properties")
-        p_r.exclude("bin").exclude("bin/**")
-        p_r.exclude("target/**").exclude("target")
+        p_r = RootResourcesTask.define_task(:resources_root)
+        p_r.send :associate_with, self, :root
+        p_r.filter.from(base_dir).exclude(/^\..*/).exclude("*.jar").exclude("*.java").exclude("build.properties")
+        p_r.exclude(lambda {|file|
+          binaries_base_folder = project.compile.target.to_s.match(Regexp.escape(project.base_dir + File::SEPARATOR)) ? $~.post_match : project.compile.target.to_s
+          file.match(Regexp.new(Regexp.escape binaries_base_folder)) || project.compile.sources.detect {|src_folder|
+            relative_folder = src_folder.match(Regexp.escape(project.base_dir)) ? $~.post_match : src_folder
+            true if file.match(Regexp.new(Regexp.escape(relative_folder.scan(/\w+/).first)))
+          }
+        })
+        p_r.filter.exclude(/target/)
         
+        properties = ResourcesTask.define_task(:resources_src)
+        properties.send :associate_with, self, :src
         
-        properties = ResourcesTask.define_task
-        properties.send :associate_with, project, :main
-        properties.from(File.join(project.base_dir, project.layout[:source, :main, :java])).
-          exclude("**/.*").exclude("**/*.java") if File.exists? File.join(project.base_dir, project.layout[:source, :main, :java])
-        
-        manifest_location = File.join(project.base_dir, "META-INF", "MANIFEST.MF")
-        manifest = project.manifest
-        if File.exists?(manifest_location)
-          read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read(manifest_location)).main
-          manifest = project.manifest.merge(read_m)
+        unless compile.nil?
+          compile.sources.each {|src_folder|
+            properties.from(src_folder).exclude(".*").exclude("*.java")
+          }
         end
         
-        manifest["Bundle-Version"] = project.version # the version of the bundle packaged is ALWAYS the version of the project.
+        manifest_location = File.join(project.base_dir, "META-INF", "MANIFEST.MF")
+        manifest = self.manifest
+        if File.exists?(manifest_location)
+          read_m = ::Buildr::Packaging::Java::Manifest.parse(File.read(manifest_location)).main
+          manifest = self.manifest.merge(read_m)
+        end
+        
+        manifest["Bundle-Version"] = self.version # the version of the bundle packaged is ALWAYS the version of the project.
         # You can override it later with use_bundle_version
         
         
-        manifest["Bundle-SymbolicName"] ||= project.name.split(":").last # if it was resetted to nil, we force the id to be added back.
+        manifest["Bundle-SymbolicName"] ||= self.name.split(":").last # if it was resetted to nil, we force the id to be added back.
         
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
         plugin.with [compile.target, resources.target, p_r.target, properties.target].compact
+        
         plugin.process_qualifier
       end
       task.send :associate_with, self

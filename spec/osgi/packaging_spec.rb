@@ -211,10 +211,54 @@ PLUGIN_PROPERTIES
        Buildr::write "plugin.xml", ""
        mkpath "conf"
        Buildr::write "conf/log4j.properties", ""
+       # Note: it doesn't work if no sources are present.
+       # Adding a pending spec for support for it.
+       Buildr::write "src/main/java/Main.java", "public class Main { public static void main(String[] args) {}}"
      end
      foo.package(:plugin).invoke
      Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
        zip.find_entry("conf/log4j.properties").should_not be_nil
+     end
+  end
+  
+  it 'should include all the resources present at the root of the plugin, and no sources are defined' do
+    pending "In progress for this: we don't really need that yet."
+    foo = define("foo", :version => "1.0.0") do
+       package(:plugin).manifest["Bundle-Version"] = "2.0.0"
+       Buildr::write "plugin.xml", ""
+       mkpath "conf"
+       Buildr::write "conf/log4j.properties", ""
+     end
+     
+     foo.package(:plugin).invoke
+     Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
+       zip.find_entry("conf/log4j.properties").should_not be_nil
+     end
+  end
+  
+  it 'should include resources present in the code tree' do
+    Buildr::write "org.apache.axis2.osgi-1.5.1-sources/Main.java", "public class Main { public static void main(String[] args) {}}"
+    Buildr::write "org.apache.axis2.osgi-1.5.1-sources/de/thing/HelloWorld.java", "package de.thing;public class HelloWorld {public static void main(String[] args) {}}"
+    Buildr::write "org.apache.axis2.osgi-1.5.1-sources/messages.properties", ""
+    Buildr::write "org.apache.axis2.osgi-1.5.1-sources/de/thing/messages.properties", ""
+    Buildr::write "org.apache.axis2.osgi-abpt-1.5.1-sources/de/hello/messages.properties", ""
+    Buildr::write "META-INF/MANIFEST.MF", "Bundle-SymbolicName: dev\nExport-Package: package1,\n package2\nBundle-Version: 1.0.0"
+    Buildr::write "plugin.xml", ""
+    foo = define("foo", :version => "1.0.0") do
+       compile.from(FileList["org.apache.axis2.osgi-1.5.1-sources/", 
+         File.join(project.base_dir, "org.apache.axis2.osgi-abpt-1.5.1-sources")]).into("bin")
+       package(:bundle).use_bundle_version
+       
+     end
+     foo.package(:bundle).invoke
+     Zip::ZipFile.open(foo.package(:bundle).to_s) do |zip|
+       print zip.entries.sort.join("\n")
+       zip.find_entry("messages.properties").should_not be_nil
+       zip.find_entry("de/thing/messages.properties").should_not be_nil
+       zip.find_entry("de/hello/messages.properties").should_not be_nil
+       zip.find_entry("org.apache.axis2.osgi-1.5.1-sources").should be_nil
+       zip.find_entry("org.apache.axis2.osgi-abpt-1.5.1-sources").should be_nil
+       zip.find_entry("plugin.xml").should_not be_nil
      end
   end
   
@@ -227,11 +271,12 @@ PLUGIN_PROPERTIES
     foo = define("foo", :version => "1.0.0") do
       compile.options.source = "1.5"
       compile.options.target = "1.5"
-      
+      compile.from(_("src/main/java"), _("customsrc/main/java")).into(_("bin"))
       package(:plugin).manifest["Bundle-Version"] = "2.0.0"   
     end
     foo.compile.invoke
     foo.package(:plugin).invoke
+    
     Zip::ZipFile.open(foo.package(:plugin).to_s) do |zip|
       zip.find_entry("customsrc").should be_nil
       zip.find_entry("src").should be_nil
