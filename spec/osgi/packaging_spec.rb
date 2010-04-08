@@ -252,7 +252,6 @@ PLUGIN_PROPERTIES
      end
      foo.package(:bundle).invoke
      Zip::ZipFile.open(foo.package(:bundle).to_s) do |zip|
-       print zip.entries.sort.join("\n")
        zip.find_entry("messages.properties").should_not be_nil
        zip.find_entry("de/thing/messages.properties").should_not be_nil
        zip.find_entry("de/hello/messages.properties").should_not be_nil
@@ -366,6 +365,36 @@ describe OSGi::BundleTask, "with existing manifests" do
       manifest =zip.read("META-INF/MANIFEST.MF")
       manifest.should match(/Bundle-Version: 6.0.1.003/)
       manifest.should match(/Bundle-SymbolicName: dev/)
+    end
+    
+  end
+  
+  it "should use the Bundle-Classpath entry whenever present to determine the classpath" do
+    Buildr::write "META-INF/MANIFEST.MF", "Bundle-SymbolicName: dev\nExport-Package: package1,\n package2\nBundle-Version: 1.0.0\nBundle-Classpath: WEB-INF/classes"
+    Buildr::write "src/main/java/Hello.java", "public class Hello {}"
+    
+    foo = define("foo", :version => "1.0.0.qualifier") do
+      package(:bundle)
+    end
+    
+    foo.package(:bundle).invoke
+    Zip::ZipFile.open(foo.package(:bundle).to_s) do |zip|
+      zip.find_entry("WEB-INF/classes/Hello.class").should_not be_nil
+    end
+    
+  end
+  
+  it "should use the _first_ Bundle-Classpath entry whenever present to determine the classpath" do
+    Buildr::write "META-INF/MANIFEST.MF", "Bundle-SymbolicName: dev\nExport-Package: package1,\n package2\nBundle-Version: 1.0.0\nBundle-Classpath: WEB-INF/classes,else"
+    Buildr::write "src/main/java/Hello.java", "public class Hello {}"
+    
+    foo = define("foo", :version => "1.0.0.qualifier") do
+      package(:bundle)
+    end
+    
+    foo.package(:bundle).invoke
+    Zip::ZipFile.open(foo.package(:bundle).to_s) do |zip|
+      zip.find_entry("WEB-INF/classes/Hello.class").should_not be_nil
     end
     
   end

@@ -231,6 +231,7 @@ module OSGi
     end    
     
     def package_as_bundle(file_name)
+      
       task = BundleTask.define_task(file_name).tap do |plugin|
         # Custom resource task to grab everything located at the root of the project
         # while leaving the user also specify a resources directory, in case we are in face
@@ -273,7 +274,14 @@ module OSGi
         manifest["Bundle-SymbolicName"] ||= self.name.split(":").last # if it was resetted to nil, we force the id to be added back.
         
         plugin.with :manifest=> manifest, :meta_inf=>meta_inf
-        plugin.with [compile.target, resources.target, p_r.target, properties.target].compact
+        unless manifest["Bundle-Classpath"].nil? || compile.target.nil?
+          entry = manifest["Bundle-Classpath"].split(",").first
+          plugin.path(entry).include compile.target, :as=>'.'
+          plugin.path(entry).include properties.target, :as=>'.' unless properties.target.nil?
+          plugin.with [resources.target, p_r.target].compact
+        else
+          plugin.with [compile.target, resources.target, p_r.target, properties.target].compact
+        end
         
         plugin.process_qualifier
       end
