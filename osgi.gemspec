@@ -15,26 +15,22 @@
 
 
 Gem::Specification.new do |spec|
-  spec.name           = 'buildr4osgi'
-  spec.version        = '0.9.3'
+  spec.name           = 'osgi'
+  spec.version        = '0.0.1'
   spec.author         = 'Antoine Toulme'
-  spec.email          = "atoulme@intalio.com"
-  spec.homepage       = "http://buildr.apache.org/"
-  spec.summary        = "A plugin for adding OSGi support to Buildr."
+  spec.email          = "antoine@lunar-ocean.com"
+  spec.homepage       = "http://github.com/atoulme/osgi"
+  spec.summary        = "An implementation of the OSGi framework in Ruby"
   spec.description    = <<-TEXT
-A plugin for adding OSGi support to Buildr. Ever dreamt you could resolve your OSGi dependencies ?
+The OSGi framework offers an unique way for Java bundles to communicate and depend on each other.
+This implementation of the OSGi framework is supposed to represent the framework as it should be in Ruby.
 TEXT
-  #spec.rubyforge_project  = 'buildr4osgi'
-  # Rakefile needs to create spec for both platforms (ruby and java), using the
-  # $platform global variable.  In all other cases, we figure it out from RUBY_PLATFORM.
-  spec.platform       = $platform || RUBY_PLATFORM[/java/] || 'ruby'
   spec.files          = Dir['{doc,etc,lib,rakelib,spec}/**/*', '*.{gemspec,buildfile}'] +
                         ['LICENSE', 'NOTICE', 'README.rdoc', 'Rakefile']
   spec.require_paths  = ['lib']
   spec.has_rdoc         = true
   spec.extra_rdoc_files = 'README.rdoc', 'LICENSE', 'NOTICE'
-  spec.rdoc_options     = '--title', 'Buildr4osgi', '--main', 'README.rdoc',
-                          '--webcvs', 'http://github.com/intalio/buildr4osgi'
-  spec.post_install_message = "To get started run buildr --help"
+  spec.rdoc_options     = '--title', 'OSGi', '--main', 'README.rdoc',
+                          '--webcvs', 'http://github.com/atoulme/osgi'
   spec.add_dependency("manifest", "= 0.0.8")
 end

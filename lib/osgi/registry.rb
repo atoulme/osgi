@@ -13,7 +13,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require File.join(File.dirname(__FILE__), 'execution_environment')
+require 'singleton'
 
 module OSGi
   

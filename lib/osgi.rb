@@ -13,14 +13,12 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'buildr4osgi/osgi/version'
-require 'buildr4osgi/osgi/packaging'
-require 'buildr4osgi/osgi/packaging_sources'
-require 'buildr4osgi/osgi/bundle'
-require 'buildr4osgi/osgi/bundle_package'
-require 'buildr4osgi/osgi/container'
-require 'buildr4osgi/osgi/registry'
-require 'buildr4osgi/osgi/resolving_strategies'
-require 'buildr4osgi/osgi/dependencies'
-require 'buildr4osgi/osgi/project_extension'
-require 'buildr4osgi/osgi/library_extension'
+require 'osgi/bundle'
+require 'osgi/bundle_package'
+require 'osgi/container'
+require 'osgi/execution_environment'
+require 'osgi/registry'
+require 'osgi/resolving_strategies'
+require 'osgi/version'
+
+module OSGi ; extend self ; end

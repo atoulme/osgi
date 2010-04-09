@@ -15,18 +15,7 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
-Spec::Runner.configure do |config|
-  config.include Buildr4OSGi::SpecHelpers
-end
-
 describe OSGi::Registry do
-
-  it 'should be possible to set containers from the Buildr settings' do
-    pending "Doesn't work when using rake coverage"
-    yaml = {"osgi" => ({"containers" => ["myContainer"]})}
-    write 'home/.buildr/settings.yaml', yaml.to_yaml
-    OSGi.registry.containers.should == ["myContainer"]
-  end
   
   it 'should be possible to set the containers from the OSGi environment variables' do
     ENV['OSGi'] = "foo;bar"
@@ -51,7 +40,6 @@ describe OSGi::Registry do
   end
   
   it 'should throw an exception when modifying the containers in the registry after the resolved_containers method is called' do
-    foo = define('foo')
     OSGi.registry.resolved_containers
     lambda {OSGi.registry.containers << "hello"}.should raise_error(TypeError)
     lambda {OSGi.registry.containers = ["hello"]}.should raise_error(RuntimeError, /Cannot set containers, containers have been resolved already/)
