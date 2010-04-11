@@ -15,6 +15,11 @@
 
 require File.join(File.dirname(__FILE__), '../spec_helpers')
 
+
+Spec::Runner.configure do |config|
+  config.include SpecHelpers
+end
+
 describe OSGi::Registry do
   
   it 'should be possible to set the containers from the OSGi environment variables' do

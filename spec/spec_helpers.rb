@@ -13,7 +13,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-unless defined?(OSGi_REPOS)
+unless defined?(SpecHelpers)
   
   # For testing we use the gem requirements specified on the buildr4osgi.gemspec
   spec = Gem::Specification.load(File.expand_path('../osgi.gemspec', File.dirname(__FILE__)))
@@ -101,32 +101,31 @@ unless defined?(OSGi_REPOS)
     end
   end
   
-  class << self
-
-    def included(config)
-      config.before(:all) {
-        OSGi.extend MockInstanceWriter
-      }
+  module SpecHelpers
+    
+    class << self
+  
+      def included(config)
+        config.before(:all) {
+          OSGi.extend MockInstanceWriter
+        }
       
-      config.before(:each) {
-        remoteRepositoryForHelpers()
-        OSGi.registry = OSGi::Registry.new
-      }
-      config.after(:all) {
-        FileUtils.rm_rf Buildr4OSGi::SpecHelpers::OSGi_REPOS
-        
-      }
+        config.before(:each) {
+          OSGi.registry = OSGi::Registry.new
+        }
+        config.after(:all) {
+          FileUtils.rm_rf OSGi_REPOS        
+        }
     end
+    
   end
   
+  end
+    
   def createRepository(name)
     repo = File.join(OSGi_REPOS, name)
     FileUtils.mkpath repo
     return repo
-  end
-  
-  def remoteRepositoryForHelpers()
-    repositories.remote << "file://#{HELPERS_REPOSITORY}"
   end
 
 end

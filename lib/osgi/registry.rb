@@ -60,9 +60,7 @@ module OSGi
     #
     def containers
       unless @containers
-        @containers = [Buildr.settings.user, Buildr.settings.build].inject([]) { |repos, hash|
-          repos | Array(hash['osgi'] && hash['osgi']['containers'])
-        }
+        @containers = read_containers
         if ENV['OSGI'] && !ENV['OSGi']
           warn "The correct constant to define for the OSGi containers is named OSGi"
           ENV['OSGi'] = ENV['OSGI']
@@ -84,40 +82,54 @@ module OSGi
       @resolved_containers ||= containers.collect { |container| Container.new(container) }
       @resolved_containers
     end 
+    
+    protected
+
+    # 
+    # Reads the containers from a configuration file.
+    # By default it returns an empty array.
+    #
+    def read_containers
+      []
+    end
   end
 
-    # The options for the osgi.options method
-    #   package_resolving_strategy:
-    #     The package resolving strategy, it should be a symbol representing a module function in the OSGi::PackageResolvingStrategies module.
-    #   bundle_resolving_strategy:
-    #     The bundle resolving strategy, it should be a symbol representing a module function in the OSGi::BundleResolvingStrategies module.
-    #   group_matchers:
-    #     A set of Proc objects to match a bundle to a groupId for maven.
-    #     The array is examined with the latest added Procs first.
-    #     The first proc to return a non-nil answer is used, otherwise the OGSGI_GROUP_ID constant is used.
-    class Options < ::OSGi::ExecutionEnvironmentConfiguration
-      attr_accessor :package_resolving_strategy, :bundle_resolving_strategy
+  # The options for the osgi.options method
+  #   package_resolving_strategy:
+  #     The package resolving strategy, it should be a symbol representing a module function in the OSGi::PackageResolvingStrategies module.
+  #   bundle_resolving_strategy:
+  #     The bundle resolving strategy, it should be a symbol representing a module function in the OSGi::BundleResolvingStrategies module.
+  #   group_matchers:
+  #     A set of Proc objects to match a bundle to a groupId for maven.
+  #     The array is examined with the latest added Procs first.
+  #     The first proc to return a non-nil answer is used, otherwise the OGSGI_GROUP_ID constant is used.
+  class Options < ::OSGi::ExecutionEnvironmentConfiguration
+    attr_accessor :package_resolving_strategy, :bundle_resolving_strategy
 
-      def initialize
-        super
-        @package_resolving_strategy = :all
-        @bundle_resolving_strategy = :latest
-      end
+    def initialize
+      super
+      @package_resolving_strategy = :all
+      @bundle_resolving_strategy = :latest
     end
+  end
     
-    # Calls to this method return true if the package name passed as argument
-    # is either part of the packages of the framework given by the execution environment
-    # or part of the extra packages specified by the user.
-    #
-    def is_framework_package?(name)
-      options.current_execution_environment.packages.include?(name) || options.extra_packages.include?(name)
-    end
+  # Calls to this method return true if the package name passed as argument
+  # is either part of the packages of the framework given by the execution environment
+  # or part of the extra packages specified by the user.
+  #
+  def is_framework_package?(name)
+    options.current_execution_environment.packages.include?(name) || options.extra_packages.include?(name)
+  end
   
-  
+  # Options for the framework resolution.
+  #
   def options
     @options ||= Options.new
   end
   
+  #
+  # Returns the registry
+  # 
   def registry
     @registry ||= ::OSGi::Registry.new
   end
